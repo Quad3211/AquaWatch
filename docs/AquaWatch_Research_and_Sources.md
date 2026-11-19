@@ -77,3 +77,5 @@ This is a proposed differentiation, not proof that AquaWatch is superior to exis
 9. TaKaDu, *From Telemetry Data to Recovered Water — SAPAL*. https://www.takadu.com/case-study/sapal/
 10. Thames Water, *Thames Water uses satellites, AI and thousands of acoustic sensors to hunt down leaks*, 24 August 2026. https://www.thameswater.co.uk/news/2026/aug/thames-water-uses-satellites-ai-and-thousands-of-acoustic-sensors-to-hunt-down-leaks-as-south-east-drought-pressure-intensifies
 11. Smart Caribbean Utilities Project Guide, Sections 3, 4, 11–16 and 20 (user-provided course guide).
+12. National Water Commission, *Report a Leak* (accessed 19 November 2026). https://www.nwcjamaica.com/report_leak.php
+13. National Water Commission, *Advisories & Disruptions* (accessed 19 November 2026). https://www.nwcjamaica.com/advisories.php
