@@ -79,13 +79,18 @@ Full source register: [AquaWatch_Research_and_Sources.md](AquaWatch_Research_and
 
 | Risk | Who could be harmed? | Mitigation | Owner | Status |
 |---|---|---|---|---|
-| Too many false alerts | Crews waste time; operators ignore the tool | Show precision; human verify every alert | Nicholas + Mahatma | TODO |
-| Missed real anomalies | Leaks continue longer | Report recall; never claim 100% catch rate | Nicholas + Mahatma | TODO |
+| Too many false alerts | Crews waste time; operators ignore the tool | Show precision; human verify every alert | Nicholas + Mahatma | Draft |
+| Missed real anomalies | Leaks continue longer | Report recall; never claim 100% catch rate | Nicholas + Mahatma | Draft |
 | Overclaiming on synthetic data | Trainers/industry lose trust | Banner + data notes + pitch wording | Nathanael | In scope doc |
 
 **Write risk paragraph here:**
 
-> _TODO_
+> False alerts can waste crew time on checks that do not find an issue, and repeated false alerts can weaken trust in the tool. A missed anomaly can delay investigating a genuinely unusual pattern, so a real issue may go unnoticed longer. NWC says public leak reports are routed to area crews and prioritized by severity; its advisories also list scheduled maintenance, power issues, and pipeline or valve work ([leak reporting](https://www.nwcjamaica.com/report_leak.php); [advisories](https://www.nwcjamaica.com/advisories.php)). That local operating context reinforces the need to verify alerts. In our held-out synthetic test, precision was about 91.7% for both methods, meaning most alerts matched injected anomalous readings in that test; recall was about 37.9% for the simple flow rule and 75.9% for Isolation Forest, which caught more injected readings but still missed some ([synthetic-test results](../data/AquaWatch_Data_Notes.md)). These are synthetic-test results, not evidence of field performance. A person must verify every alert against sensor quality, operating context, and field checks before acting. AquaWatch flags patterns for investigation; the model alone must never be described as confirming a leak.
+
+**Presenter / field-check sentences (Mahatma):**
+
+- **After a false alert:** “Our check did not confirm a leak; we’ll review the sensor and operating context, then keep monitoring.”
+- **After a miss:** “The tool did not flag this unusual pattern, so we’ll document it and investigate with normal field checks rather than rely on the alert alone.”
 
 ---
 
