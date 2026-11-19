@@ -13,6 +13,9 @@ Phase 1 **test product** for the Smart Caribbean Utilities pitch: load zone flow
 - [x] Architecture documented — see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - [x] Work split assigned — see [TEAM_WORK_SPLIT.md](TEAM_WORK_SPLIT.md)
 - [x] Blocker log started — see [docs/BLOCKERS.md](docs/BLOCKERS.md)
+- [x] Guide gap checklist — see [docs/GUIDE_GAP_CHECKLIST.md](docs/GUIDE_GAP_CHECKLIST.md)
+- [x] Research log template — see [docs/research_log.md](docs/research_log.md)
+- [x] Contribution log — see [docs/CONTRIBUTION_LOG.md](docs/CONTRIBUTION_LOG.md)
 - [x] Install / evaluate / Streamlit path verified
 - [x] Repository connected to GitHub
 
@@ -23,6 +26,7 @@ git clone git@github.com:Quad3211/AquaWatch.git
 cd AquaWatch
 pip install -r requirements.txt
 python scripts/AquaWatch_Evaluate.py
+python scripts/train_and_save_model.py
 python -m streamlit run app.py
 ```
 
@@ -39,12 +43,15 @@ python -m pytest tests/test_pipeline.py -v
 ```text
 AquaWatch/
   app.py                      # Streamlit UI (Jason / Romaro)
+  config.py                   # Shared settings (paths, cutoff, model params)
   requirements.txt
   README.md
   TEAM_WORK_SPLIT.md          # Detailed task ownership
   data/
     AquaWatch_Synthetic_Sensor_Data.csv
     AquaWatch_Data_Notes.md
+    raw/  demo/               # Guide §14.2 layout stubs
+  models/                     # Saved Isolation Forest + profile
   src/
     data_loader.py            # Nicholas
     baseline.py               # Nicholas
@@ -52,17 +59,20 @@ AquaWatch/
     alerts.py                 # Nickel (+ Jason consumes)
     metrics.py                # Nicholas
   tests/
-    test_pipeline.py          # Automated smoke tests
-    MAHATMA_TEST_CHECKLIST.md # Manual demo checks (Mahatma)
+    test_pipeline.py
+    MAHATMA_TEST_CHECKLIST.md
   scripts/
-    AquaWatch_Evaluate.py     # CLI metrics reproduction
+    AquaWatch_Evaluate.py
+    train_and_save_model.py
   docs/
-    STAGE0_SCOPE.md           # Team Lead scope lock
-    ARCHITECTURE.md           # Team Lead architecture
-    BLOCKERS.md               # Team Lead daily tracker
+    GUIDE_GAP_CHECKLIST.md
+    research_log.md
+    CONTRIBUTION_LOG.md
+    STAGE0_SCOPE.md
+    ARCHITECTURE.md
+    BLOCKERS.md
     AquaWatch_Research_and_Sources.md
     pitch/
-      AquaWatch_Jamaica_Group13_Pitch.pptx
 ```
 
 ## Phase plan
