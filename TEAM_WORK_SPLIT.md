@@ -6,6 +6,9 @@
 
 **Rule:** nobody builds Phase 2 (database, login, cloud, live NWC feeds) until Phase 1 passes Mahatma’s checklist.
 
+**If you do not know what to do today:** open [`docs/STAGE0_TASK_INSTRUCTIONS.md`](docs/STAGE0_TASK_INSTRUCTIONS.md) and follow your name section step by step.  
+**Board:** https://github.com/users/Quad3211/projects/1
+
 ---
 
 ## Team at a glance
