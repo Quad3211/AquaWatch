@@ -8,6 +8,8 @@ from pathlib import Path
 
 import pandas as pd
 
+import config
+
 REQUIRED_COLUMNS = {
     "timestamp",
     "zone",
@@ -17,8 +19,8 @@ REQUIRED_COLUMNS = {
     "simulated_leak_label",
 }
 
-DEFAULT_DATA = Path(__file__).resolve().parents[1] / "data" / "AquaWatch_Synthetic_Sensor_Data.csv"
-TRAIN_CUTOFF = "2026-11-11"
+DEFAULT_DATA = config.DEMO_CSV
+TRAIN_CUTOFF = config.TRAIN_CUTOFF
 
 
 def load_sensor_csv(path: str | Path | None = None) -> pd.DataFrame:
@@ -43,10 +45,11 @@ def load_sensor_csv(path: str | Path | None = None) -> pd.DataFrame:
     return df
 
 
-def chronological_split(df: pd.DataFrame, cutoff: str = TRAIN_CUTOFF) -> tuple[pd.DataFrame, pd.DataFrame]:
+def chronological_split(df: pd.DataFrame, cutoff: str | None = None) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Split into train (< cutoff) and held-out test (>= cutoff)."""
-    train = df[df["timestamp"] < cutoff].copy()
-    test = df[df["timestamp"] >= cutoff].copy()
+    cut = cutoff or TRAIN_CUTOFF
+    train = df[df["timestamp"] < cut].copy()
+    test = df[df["timestamp"] >= cut].copy()
     if train.empty or test.empty:
         raise ValueError("Expected rows in both the training window and the held-out test window.")
     return train, test

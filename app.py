@@ -12,18 +12,25 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
+import config
 from src.alerts import build_alert_table
 from src.baseline import predict_rule
 from src.data_loader import DEFAULT_DATA, chronological_split, load_sensor_csv
 from src.metrics import compare_rule_and_ai
-from src.model import run_detection
+from src.model import (
+    add_deviations,
+    load_model_artifacts,
+    predict_isolation_forest,
+    run_detection,
+)
 
 st.set_page_config(page_title="AquaWatch Jamaica", page_icon="💧", layout="wide")
 
+st.warning(config.SIMULATED_DATA_BANNER)
 st.title("AquaWatch Jamaica")
 st.caption(
-    "Phase 1 test product — flags unusual zone patterns for investigation. "
-    "Synthetic data only. Not a confirmed leak detector."
+    f"{config.PRODUCT_CLAIM} "
+    "Phase 1 test product — synthetic data only. Not a confirmed leak detector."
 )
 
 
@@ -36,6 +43,11 @@ with st.sidebar:
     st.header("Data")
     use_default = st.checkbox("Use project synthetic CSV", value=True)
     uploaded = st.file_uploader("Or upload a compatible CSV", type=["csv"])
+    prefer_saved = st.checkbox(
+        "Use saved model (models/)",
+        value=config.MODEL_PATH.exists(),
+        help="Guide §14.3: demo should not need to retrain live.",
+    )
     st.markdown("---")
     st.markdown("**Team reminder:** labels are for evaluation only, not model features.")
 
@@ -53,7 +65,14 @@ else:
     st.stop()
 
 train, test = chronological_split(df)
-scored, _model = run_detection(train, test)
+if prefer_saved and config.MODEL_PATH.exists() and config.PROFILE_PATH.exists():
+    model, profile = load_model_artifacts()
+    scored = add_deviations(test, profile)
+    scored["ai_pred"] = predict_isolation_forest(model, scored)
+    st.sidebar.success("Using saved Isolation Forest artifacts")
+else:
+    scored, _model = run_detection(train, test)
+    st.sidebar.info("Trained Isolation Forest in-session (run train_and_save_model.py for offline demo)")
 scored = scored.copy()
 scored["rule_pred"] = predict_rule(scored)
 alerts = build_alert_table(scored, prediction_col="ai_pred")
