@@ -3,6 +3,7 @@
 Phase 1 **test product** for the Smart Caribbean Utilities pitch: load zone flow/pressure readings, compare a simple rule to Isolation Forest, and show explainable investigation alerts.
 
 **GitHub:** https://github.com/Quad3211/AquaWatch  
+**Project board:** https://github.com/users/Quad3211/projects/1  
 **Clone:** `git clone git@github.com:Quad3211/AquaWatch.git`
 
 > Synthetic demonstration data only. Not endorsed by NWC, Miya Jamaica, or any named organisation. An alert means **investigate this pattern**, not **a leak is confirmed**.
