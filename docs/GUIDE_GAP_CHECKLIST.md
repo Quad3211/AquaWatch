@@ -9,7 +9,7 @@ Use with GitHub issues. Tick here when the matching issue is Done.
 
 | # | Gap | Owner | Due | Done |
 |---|---|---|---|---|
-| P1 | Project board (To Do / In Progress / Testing / Done) with one owner per task | Nathanael | 20 Nov | [ ] |
+| P1 | Project board (To Do / In Progress / Testing / Done) with one owner per task — [board](https://github.com/users/Quad3211/projects/1) | Nathanael | 20 Nov | [x] |
 | P2 | Contribution log started and updated each session | Nathanael + all | ongoing | [ ] |
 | P3 | Two 15-min check-ins per week (Mon + Thu) | Nathanael | ongoing | [ ] |
 
