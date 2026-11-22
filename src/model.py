@@ -21,17 +21,46 @@ import config
 FEATURE_COLS = ["flow_rel_dev", "pressure_dev"]
 
 
-def build_zone_hour_profile(train: pd.DataFrame) -> pd.DataFrame:
-    """Typical flow/pressure for each zone and hour of day.
+# How the "expected" flow and pressure are looked up. Demand differs by day of
+# week, so a profile keyed only on hour of day mistakes every weekend morning
+# for a leak. "day_type" (weekday/weekend) needs few weeks of history;
+# "hour_of_week" is finer but needs several weeks per cell.
+PROFILE_KEYS = {
+    "hour": ["zone", "hour"],
+    "day_type": ["zone", "day_type", "hour"],
+    "hour_of_week": ["zone", "day_of_week", "hour"],
+}
+PROFILE_VALUE_COLS = ["expected_flow", "expected_pressure"]
+
+
+def add_calendar_columns(frame: pd.DataFrame) -> pd.DataFrame:
+    """Add ``day_of_week`` (0 = Monday) and ``day_type`` (weekday/weekend)."""
+    out = frame.copy()
+    out["day_of_week"] = out["timestamp"].dt.dayofweek.astype(int)
+    out["day_type"] = out["day_of_week"].map(lambda d: "weekend" if d >= 5 else "weekday")
+    return out
+
+
+def profile_keys(profile: pd.DataFrame) -> list[str]:
+    """The lookup columns a saved profile was built with."""
+    return [c for c in profile.columns if c not in PROFILE_VALUE_COLS]
+
+
+def build_zone_hour_profile(train: pd.DataFrame, by: str | None = None) -> pd.DataFrame:
+    """Typical flow/pressure per zone and hour (and day type, by default).
 
     Uses the median of *all* training rows, so no labels are needed. The median
     is robust: a few leak hours in the training window barely move it, unlike
-    the mean.
+    the mean. ``by`` is a key of ``PROFILE_KEYS`` (default ``config.PROFILE_BY``).
     """
     if train.empty:
         raise ValueError("No training rows are available.")
+    by = by or config.PROFILE_BY
+    if by not in PROFILE_KEYS:
+        raise ValueError(f"Unknown profile type {by!r}; choose from {sorted(PROFILE_KEYS)}.")
     return (
-        train.groupby(["zone", "hour"])
+        add_calendar_columns(train)
+        .groupby(PROFILE_KEYS[by])
         .agg(
             expected_flow=("flow_index", "median"),
             expected_pressure=("pressure_index", "median"),
@@ -65,10 +94,13 @@ def select_typical_rows(features: pd.DataFrame, z_cutoff: float | None = None) -
 
 def add_deviations(frame: pd.DataFrame, profile: pd.DataFrame) -> pd.DataFrame:
     """Attach expected values and deviation features used by rule + AI."""
-    out = frame.merge(profile, on=["zone", "hour"], how="left")
-    if out[["expected_flow", "expected_pressure"]].isna().any().any():
-        raise ValueError("Some zone/hour combinations have no training reference profile.")
-    out = out.copy()
+    keys = profile_keys(profile)
+    out = add_calendar_columns(frame).merge(profile, on=keys, how="left")
+    if out[PROFILE_VALUE_COLS].isna().any().any():
+        raise ValueError(
+            f"Some {'/'.join(keys)} combinations have no training reference profile; "
+            "the training window may be too short for this profile type."
+        )
     out["flow_rel_dev"] = (out["flow_index"] - out["expected_flow"]) / out["expected_flow"]
     out["pressure_dev"] = out["pressure_index"] - out["expected_pressure"]
     return out
@@ -135,6 +167,7 @@ def save_model_artifacts(
         "features": FEATURE_COLS,
         "params": model.get_params(),
         "robust_z_cutoff": config.ROBUST_Z_CUTOFF,
+        "profile_keys": profile_keys(profile),
         "train_cutoff": config.TRAIN_CUTOFF,
         "train_rows": None if train is None else len(train),
         "train_data_sha256_16": None if train is None else data_fingerprint(train),
@@ -173,21 +206,23 @@ def load_model_artifacts(
     return model, profile
 
 
-def fit_detector(train: pd.DataFrame) -> tuple[IsolationForest, pd.DataFrame]:
+def fit_detector(train: pd.DataFrame, profile_by: str | None = None) -> tuple[IsolationForest, pd.DataFrame]:
     """Build the zone/hour profile and fit Isolation Forest on the training window.
 
     Never reads ``simulated_leak_label`` or ``simulated_event_id``: a real utility
     has no such labels, so training must work without them.
     """
-    profile = build_zone_hour_profile(train)
+    profile = build_zone_hour_profile(train, by=profile_by)
     train_features = select_typical_rows(add_deviations(train, profile))
     model = train_isolation_forest(train_features)
     return model, profile
 
 
-def run_detection(train: pd.DataFrame, test: pd.DataFrame) -> tuple[pd.DataFrame, IsolationForest]:
+def run_detection(
+    train: pd.DataFrame, test: pd.DataFrame, profile_by: str | None = None
+) -> tuple[pd.DataFrame, IsolationForest]:
     """Full Phase 1 detection path on a chronological split (label-free training)."""
-    model, profile = fit_detector(train)
+    model, profile = fit_detector(train, profile_by=profile_by)
     test_features = add_deviations(test, profile)
     test_features["ai_pred"] = predict_isolation_forest(model, test_features)
     return test_features, model

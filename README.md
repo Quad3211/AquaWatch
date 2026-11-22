@@ -54,9 +54,19 @@ uv run pre-commit install    # optional: lint + large-file check before each com
 
 If you change dependencies, edit both `pyproject.toml` and `requirements.txt`, then run `uv lock`. GitHub Actions (`.github/workflows/ci.yml`) runs lock check, lint, tests, train + evaluate and `pip-audit` on every pull request. Dependabot opens weekly dependency PRs.
 
+## Simulated dataset (WNTR)
+
+`data/simulated/` holds a 120-day, 5-zone dataset with 40 leaks, produced by a hydraulic model (WNTR). Evaluate on it with:
+
+```bash
+python scripts/AquaWatch_Evaluate.py --dataset simulated
+```
+
+See [data/simulated/DATASHEET.md](data/simulated/DATASHEET.md) for how it was made, how to regenerate it, and its limits.
+
 ## How results are measured
 
-Training never uses the leak labels. Results are scored **per leak event** (events caught, real vs false alarm episodes, false alarms per zone-week, time to detect) with exact 95% confidence intervals and a random-alarm baseline. See [data/AquaWatch_Data_Notes.md](data/AquaWatch_Data_Notes.md) for the current table and [reports/AquaWatch industry readiness.md](reports/AquaWatch%20industry%20readiness.md) for the roadmap.
+Every detector is compared with the same code (`src/pipeline.py`): the simple flow rule, a flow + pressure rule, night flow (MNF), CUSUM and Isolation Forest. Training never uses the leak labels. Results are scored **per leak event** (events caught, real vs false alarm episodes, false alarms per zone-week, time to detect) with exact 95% confidence intervals and a random-alarm baseline. See [data/AquaWatch_Data_Notes.md](data/AquaWatch_Data_Notes.md) for the current table and [reports/AquaWatch industry readiness.md](reports/AquaWatch%20industry%20readiness.md) for the roadmap.
 
 ## Project structure
 

@@ -9,14 +9,14 @@ import pandas as pd
 
 def _reason(row: pd.Series) -> str:
     flow_bit = (
-        "Flow above its usual zone/hour pattern"
+        "Flow above its usual level for this zone, hour and day type"
         if row.get("flow_rel_dev", 0) > 0.10
-        else "Flow pattern looks unusual versus its zone/hour baseline"
+        else "Flow pattern looks unusual for this zone, hour and day type"
     )
     press_bit = (
         "pressure index drops at the same time"
         if row.get("pressure_dev", 0) < -2
-        else "pressure also differs from its usual zone/hour level"
+        else "pressure also differs from its usual level"
     )
     return f"{flow_bit}; {press_bit}."
 

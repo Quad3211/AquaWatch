@@ -76,23 +76,28 @@ def _overlaps(zone: str, start, end, others: pd.DataFrame) -> pd.Series:
     return (others["zone"] == zone) & (others["start"] <= end) & (others["end"] >= start)
 
 
-def event_scores(scored: pd.DataFrame, pred_col: str) -> dict[str, float | int]:
-    """Event-level scores for one prediction column, plus point-wise secondaries."""
-    events = true_events(scored)
-    episodes = alarm_episodes(scored, pred_col)
-
-    detected = 0
-    delays: list[float] = []
-    for ev in events.itertuples():
+def event_detections(scored: pd.DataFrame, pred_col: str) -> pd.DataFrame:
+    """One row per true event: was it flagged, and how many hours after it began."""
+    rows = []
+    for ev in true_events(scored).itertuples():
         hits = scored[
             (scored["zone"] == ev.zone)
             & (scored["timestamp"] >= ev.start)
             & (scored["timestamp"] <= ev.end)
             & (scored[pred_col] == 1)
         ]
-        if not hits.empty:
-            detected += 1
-            delays.append((hits["timestamp"].min() - ev.start) / pd.Timedelta(hours=1))
+        delay = (hits["timestamp"].min() - ev.start) / pd.Timedelta(hours=1) if len(hits) else np.nan
+        rows.append({"event_id": ev.event_id, "detected": not hits.empty, "hours_to_detect": delay})
+    return pd.DataFrame(rows, columns=["event_id", "detected", "hours_to_detect"])
+
+
+def event_scores(scored: pd.DataFrame, pred_col: str) -> dict[str, float | int]:
+    """Event-level scores for one prediction column, plus point-wise secondaries."""
+    events = true_events(scored)
+    episodes = alarm_episodes(scored, pred_col)
+    detections = event_detections(scored, pred_col)
+    detected = int(detections["detected"].sum())
+    delays = detections["hours_to_detect"].dropna().tolist()
 
     true_episodes = sum(
         bool(_overlaps(ep.zone, ep.start, ep.end, events).any()) for ep in episodes.itertuples()
@@ -131,8 +136,22 @@ def random_alarms(scored: pd.DataFrame, rate: float, seed: int = RANDOM_BASELINE
     return pd.Series((rng.random(len(scored)) < rate).astype(int), index=scored.index)
 
 
+# Display name -> prediction column, in the order tables show them.
+METHODS = {
+    "Simple flow rule": "rule_pred",
+    "Flow + pressure rule": "fp_rule_pred",
+    "Night flow (MNF)": "mnf_pred",
+    "CUSUM on flow": "cusum_pred",
+    "Isolation Forest": "ai_pred",
+}
+
+
 def compare_methods(scored_test: pd.DataFrame) -> pd.DataFrame:
-    """Score the simple rule, Isolation Forest and a same-rate random baseline."""
+    """Score every method present in ``scored_test`` plus a same-rate random baseline.
+
+    Methods are the prediction columns in ``METHODS``; at least ``rule_pred``
+    and ``ai_pred`` are required.
+    """
     required = {"simulated_leak_label", "simulated_event_id", "rule_pred", "ai_pred"}
     missing = required.difference(scored_test.columns)
     if missing:
@@ -140,13 +159,9 @@ def compare_methods(scored_test: pd.DataFrame) -> pd.DataFrame:
 
     scored = scored_test.copy()
     scored["random_pred"] = random_alarms(scored, rate=float(scored["ai_pred"].mean()))
-    rows = []
-    for name, col in [
-        ("Simple flow rule", "rule_pred"),
-        ("Isolation Forest", "ai_pred"),
-        ("Random alarms (same rate as AI)", "random_pred"),
-    ]:
-        rows.append({"method": name, **event_scores(scored, col)})
+    methods = {name: col for name, col in METHODS.items() if col in scored.columns}
+    methods["Random alarms (same rate as AI)"] = "random_pred"
+    rows = [{"method": name, **event_scores(scored, col)} for name, col in methods.items()]
     return pd.DataFrame(rows)
 
 
@@ -174,4 +189,30 @@ def format_comparison(table: pd.DataFrame) -> pd.DataFrame:
     )
     out["point-wise precision"] = table["pointwise_precision"].map(pct)
     out["point-wise recall"] = table["pointwise_recall"].map(pct)
+    return out
+
+
+def detection_by_leak_size(
+    scored: pd.DataFrame,
+    pred_cols: dict[str, str],
+    events_table: pd.DataFrame,
+    bins: tuple[float, ...] = (0.0, 0.05, 0.10, 0.20, 1.0),
+) -> pd.DataFrame:
+    """Share of events caught per leak-size band (leak flow as % of zone inflow).
+
+    ``events_table`` is the simulator's events CSV (needs ``event_id`` and
+    ``target_fraction_of_inflow``). This is the sensitivity curve that shows the
+    smallest leak a detector reliably finds.
+    """
+    sizes = events_table.set_index("event_id")["target_fraction_of_inflow"]
+    labels = [f"{lo:.0%}-{hi:.0%}" for lo, hi in zip(bins[:-1], bins[1:], strict=True)]
+    out = None
+    for name, col in pred_cols.items():
+        det = event_detections(scored, col)
+        det["size_band"] = pd.cut(det["event_id"].map(sizes), bins=list(bins), labels=labels)
+        grouped = det.groupby("size_band", observed=False)["detected"].agg(["sum", "count"])
+        pairs = zip(grouped["sum"], grouped["count"], strict=True)
+        column = [f"{int(k)}/{int(n)}" if n else "-" for k, n in pairs]
+        frame = pd.DataFrame({"leak size (% of zone inflow)": grouped.index.astype(str), name: column})
+        out = frame if out is None else out.merge(frame, on="leak size (% of zone inflow)")
     return out
