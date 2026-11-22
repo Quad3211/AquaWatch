@@ -52,7 +52,9 @@ def build_alert_table(
     alerts["source"] = "Isolation Forest" if prediction_col == "ai_pred" else "Simple flow rule"
 
     # Stronger combined deviation sorts higher (more urgent review).
-    alerts["rank_score"] = alerts["flow_rel_dev"].clip(lower=0) + (-alerts["pressure_dev"]).clip(lower=0) / 20.0
+    flow_up = alerts["flow_rel_dev"].clip(lower=0)
+    pressure_drop = (-alerts["pressure_dev"]).clip(lower=0)
+    alerts["rank_score"] = flow_up + pressure_drop / 20.0
     alerts = alerts.sort_values(["rank_score", "timestamp"], ascending=[False, True])
 
     cols = [

@@ -15,24 +15,17 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from src.data_loader import chronological_split, load_sensor_csv
-from src.model import (
-    add_deviations,
-    build_zone_hour_profile,
-    save_model_artifacts,
-    train_isolation_forest,
-)
+from src.model import fit_detector, save_model_artifacts
 
 
 def main() -> None:
     df = load_sensor_csv()
     train, _test = chronological_split(df)
-    normal_train = train[train["simulated_leak_label"] == 0].copy()
-    profile = build_zone_hour_profile(normal_train)
-    train_features = add_deviations(normal_train, profile)
-    model = train_isolation_forest(train_features)
-    model_path, profile_path = save_model_artifacts(model, profile)
-    print(f"Saved model:   {model_path}")
-    print(f"Saved profile: {profile_path}")
+    model, profile = fit_detector(train)
+    model_path, profile_path, metadata_path = save_model_artifacts(model, profile, train=train)
+    print(f"Saved model:    {model_path}")
+    print(f"Saved profile:  {profile_path}")
+    print(f"Saved metadata: {metadata_path}")
 
 
 if __name__ == "__main__":

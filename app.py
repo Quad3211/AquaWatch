@@ -7,7 +7,7 @@ Run:
 """
 from __future__ import annotations
 
-from pathlib import Path
+from io import BytesIO
 
 import pandas as pd
 import streamlit as st
@@ -16,13 +16,14 @@ import config
 from src.alerts import build_alert_table
 from src.baseline import predict_rule
 from src.data_loader import DEFAULT_DATA, chronological_split, load_sensor_csv
-from src.metrics import compare_rule_and_ai
+from src.metrics import compare_methods, format_comparison
 from src.model import (
     add_deviations,
     load_model_artifacts,
     predict_isolation_forest,
     run_detection,
 )
+from src.schema import find_gaps
 
 st.set_page_config(page_title="AquaWatch Jamaica", page_icon="💧", layout="wide")
 
@@ -35,14 +36,25 @@ st.caption(
 
 
 @st.cache_data(show_spinner=False)
-def _load(path: str) -> pd.DataFrame:
+def _load_default(path: str) -> pd.DataFrame:
     return load_sensor_csv(path)
+
+
+@st.cache_data(show_spinner=False)
+def _load_upload(data: bytes) -> pd.DataFrame:
+    # Cached on the file's bytes, so a different upload always reloads.
+    return load_sensor_csv(BytesIO(data))
 
 
 with st.sidebar:
     st.header("Data")
-    use_default = st.checkbox("Use project synthetic CSV", value=True)
-    uploaded = st.file_uploader("Or upload a compatible CSV", type=["csv"])
+    uploaded = st.file_uploader("Upload a compatible CSV (optional)", type=["csv"])
+    use_default = st.checkbox(
+        "Use project synthetic CSV",
+        value=True,
+        disabled=uploaded is not None,
+        help="An uploaded CSV takes priority over the project CSV.",
+    )
     prefer_saved = st.checkbox(
         "Use saved model (models/)",
         value=config.MODEL_PATH.exists(),
@@ -51,32 +63,45 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("**Team reminder:** labels are for evaluation only, not model features.")
 
-df: pd.DataFrame | None = None
-if use_default and DEFAULT_DATA.exists():
-    df = _load(str(DEFAULT_DATA))
-    st.sidebar.success(f"Loaded {DEFAULT_DATA.name}")
-elif uploaded is not None:
-    tmp = Path("data") / "_upload_tmp.csv"
-    tmp.write_bytes(uploaded.getvalue())
-    df = _load(str(tmp))
-    st.sidebar.success("Loaded uploaded CSV")
-else:
-    st.info("Load the synthetic CSV from the sidebar to begin.")
-    st.stop()
+try:
+    if uploaded is not None:
+        df = _load_upload(uploaded.getvalue())
+        st.sidebar.success(f"Loaded uploaded CSV: {uploaded.name}")
+    elif use_default and DEFAULT_DATA.exists():
+        df = _load_default(str(DEFAULT_DATA))
+        st.sidebar.success(f"Loaded {DEFAULT_DATA.name}")
+    else:
+        st.info("Load the synthetic CSV or upload one from the sidebar to begin.")
+        st.stop()
 
-train, test = chronological_split(df)
-if prefer_saved and config.MODEL_PATH.exists() and config.PROFILE_PATH.exists():
-    model, profile = load_model_artifacts()
-    scored = add_deviations(test, profile)
-    scored["ai_pred"] = predict_isolation_forest(model, scored)
-    st.sidebar.success("Using saved Isolation Forest artifacts")
-else:
-    scored, _model = run_detection(train, test)
-    st.sidebar.info("Trained Isolation Forest in-session (run train_and_save_model.py for offline demo)")
-scored = scored.copy()
-scored["rule_pred"] = predict_rule(scored)
-alerts = build_alert_table(scored, prediction_col="ai_pred")
-metrics_table = compare_rule_and_ai(scored)
+    gaps = find_gaps(df)
+    if not gaps.empty:
+        st.sidebar.warning(
+            f"{int(gaps['missing_readings'].sum())} hourly readings are missing across "
+            f"{len(gaps)} zone(s); results near gaps are less reliable."
+        )
+
+    train, test = chronological_split(df)
+    if prefer_saved and config.MODEL_PATH.exists() and config.PROFILE_PATH.exists():
+        model, profile = load_model_artifacts()
+        scored = add_deviations(test, profile)
+        scored["ai_pred"] = predict_isolation_forest(model, scored)
+        st.sidebar.success("Using saved Isolation Forest artifacts")
+    else:
+        scored, _model = run_detection(train, test)
+        st.sidebar.info("Trained Isolation Forest in-session (run train_and_save_model.py for offline demo)")
+    scored = scored.copy()
+    scored["rule_pred"] = predict_rule(scored)
+    alerts = build_alert_table(scored, prediction_col="ai_pred")
+    metrics_table = format_comparison(compare_methods(scored))
+except (ValueError, KeyError, FileNotFoundError, pd.errors.ParserError) as exc:
+    st.error(f"Could not run AquaWatch on this data: {exc}")
+    if prefer_saved and uploaded is not None:
+        st.caption(
+            "Tip: the saved model only knows the zones it was trained on. "
+            "Untick 'Use saved model' to train on the uploaded data instead."
+        )
+    st.stop()
 
 tab_overview, tab_alerts, tab_chart, tab_metrics = st.tabs(
     ["Overview", "Alerts", "Chart", "Metrics"]
@@ -88,7 +113,10 @@ with tab_overview:
     c2.metric("Zones", df["zone"].nunique())
     c3.metric("Held-out rows", f"{len(test):,}")
     c4.metric("AI alerts", f"{len(alerts):,}")
-    st.write("Training window ends before **2026-11-11**. Last 4 days are held out.")
+    st.write(
+        f"Training window ends before **{config.TRAIN_CUTOFF}**; "
+        f"readings from then on ({len(test):,} rows) are held out."
+    )
     st.dataframe(df.head(20), use_container_width=True)
 
 with tab_alerts:
@@ -112,8 +140,10 @@ with tab_chart:
 
 with tab_metrics:
     st.subheader("Held-out results (synthetic data only)")
-    pretty = metrics_table.copy()
-    pretty["precision"] = pretty["precision"].map(lambda x: f"{x:.1%}")
-    pretty["recall"] = pretty["recall"].map(lambda x: f"{x:.1%}")
-    st.dataframe(pretty, use_container_width=True)
+    st.caption(
+        "Scored per leak event: an alarm episode is a run of flagged hours in one zone. "
+        "Ranges are exact 95% confidence intervals; with only a few events they are wide. "
+        "The random row is the floor any detector must beat."
+    )
+    st.dataframe(metrics_table, use_container_width=True, hide_index=True)
     st.warning("Simulated test only — not validated on NWC sensor data.")

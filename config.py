@@ -29,7 +29,11 @@ FLOW_RULE_THRESHOLD = 0.25
 IFOREST_N_ESTIMATORS = 300
 IFOREST_CONTAMINATION = 0.01
 IFOREST_RANDOM_STATE = 17
-MODEL_PATH = MODELS_DIR / "isolation_forest.joblib"
+# Training rows with a robust z-score above this on flow or pressure deviation
+# are treated as already-abnormal and left out of training (no labels used).
+ROBUST_Z_CUTOFF = 3.5
+MODEL_PATH = MODELS_DIR / "isolation_forest.skops"  # generated, not committed
+MODEL_METADATA_PATH = MODELS_DIR / "model_metadata.json"
 PROFILE_PATH = MODELS_DIR / "zone_hour_profile.csv"
 
 # UI honesty banner (guide §14.3 / §15)

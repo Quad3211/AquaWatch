@@ -27,20 +27,25 @@ The simulated flow series includes a daily usage pattern and noise. Artificial l
 ## Model and evaluation
 - Baseline: alert when flow is more than 25% above the historical expected flow for that same zone and hour.
 - AI: Isolation Forest trained on flow deviation and pressure deviation from each zone/hour's reference pattern.
-- The model does **not** use `simulated_leak_label` or `simulated_event_id` as input features. In this controlled simulation, `simulated_leak_label` is used to keep known-normal records in the training reference set and to score the held-out test; `simulated_event_id` is only for scenario traceability.
-- Data is split chronologically, not randomly. The last four days are held out from training.
+- Training never reads `simulated_leak_label` or `simulated_event_id`. The zone/hour profile uses medians of all training rows, and rows that already look abnormal (robust z-score above 3.5 on flow or pressure deviation) are left out of the Isolation Forest's training set. Labels are used only to score the held-out window. (Before Phase 0, labels were used to pick "normal" training rows, which a real utility could not do.)
+- Data is split chronologically, not randomly. The last four days are held out from training. They contain **3 injected events** (SIM-04, SIM-05, SIM-06; 58 readings).
 
-### Preliminary held-out results
-| Method | Precision | Recall | True detections | False alerts | Missed injected readings |
+### Held-out results (Phase 0, event-level)
+Reproduce with `python scripts/AquaWatch_Evaluate.py`. An alarm episode is a run of flagged hours in one zone. Ranges are exact 95% confidence intervals.
+
+| Method | Leak events caught | Real alarms / all alarms | False alarms per zone-week | Point-wise precision | Point-wise recall |
 |---|---:|---:|---:|---:|---:|
-| Simple flow rule | 91.7% | 37.9% | 22 | 2 | 36 |
-| Isolation Forest | 91.7% | 75.9% | 44 | 4 | 14 |
+| Simple flow rule | 3/3 (29%-100%) | 9/11 (48%-98%) | 0.7 | 91% | 34% |
+| Isolation Forest | 3/3 (29%-100%) | 6/12 (21%-79%) | 2.1 | 90% | 91% |
+| Random alarms (same rate as AI) | 2/3 (9%-99%) | 3/46 (1%-18%) | 15.0 | 6% | 5% |
 
-Definitions:
-- Precision = true detections / all alerts.
-- Recall = true detections / all injected anomalous readings.
+How to read this:
+- Both detectors caught all 3 held-out events and both are far better than random alarms.
+- Isolation Forest flags more *hours* of each leak (higher point-wise recall), but at the event level it is **not better** than the simple rule here, and it raises more separate false alarms.
+- Three events is far too few to separate the two methods: 3/3 is consistent with a true catch rate as low as 29%.
+- The earlier pitch figures (91.7% precision, 75.9% vs 37.9% recall) were point-wise and used labels in training; they should not be quoted as current results.
 
-These results show that, on this particular synthetic test, the Isolation Forest found more injected anomalous readings at the same precision, while producing two additional false alerts. They do **not** show real-world effectiveness, leak-location accuracy, or real water savings.
+These results do **not** show real-world effectiveness, leak-location accuracy, or real water savings.
 
 ## Assumptions and limitations
 1. Flow and pressure are represented as relative indices to avoid pretending that the values are actual NWC operating units or thresholds.
