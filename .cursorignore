@@ -6,3 +6,8 @@ docs/pitch/
 uv.lock
 *.joblib
 *.skops
+
+# Secrets: the Cursor agent must never read these
+.env
+.env.*
+!.env.example

@@ -28,7 +28,7 @@ AquaWatch Jamaica is a university group project. It is a research prototype that
 3. **Report results per leak event**, using `src/metrics.py`: events caught, real vs false alarms, false alarms per zone-week, and time to detect, with 95% CIs and the random baseline. Do not quote point-wise precision or recall on its own.
 4. **Never overstate claims.** An alert means "investigate this pattern", not "leak confirmed". Keep the simulated-data banner and wording in the app. Do not claim real-world accuracy, water savings or NWC endorsement.
 5. **Never commit model files** (`models/` is gitignored; pickle/joblib can run code when loaded). Save models with skops via `src/model.py`.
-6. **No personal or customer data.** The project uses zone-level aggregates only.
+6. **No personal or customer data, and no secrets.** The project uses zone-level aggregates only. Never read, print or commit `.env` or any API key.
 7. **Do not weaken tests to make them pass.** If a quality-gate test fails, report it and explain why.
 
 ## Commands

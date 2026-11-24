@@ -3,6 +3,8 @@ __pycache__/
 .venv/
 venv/
 .env
+.env.*
+!.env.example
 .pytest_cache/
 .streamlit/secrets.toml
 data/_upload_tmp.csv

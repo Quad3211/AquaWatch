@@ -86,6 +86,10 @@ To test on the standard public leak-detection benchmark (two years, 33 leaks, CC
 
 How small must a metered zone be for AquaWatch to find leaks? Simulated zones of 10–200 m³/h with leaks of 2–10 m³/h give a rule of thumb: keep zones to about **5 × the smallest leak you need to catch within a day**. See [docs/DMA_SIZING.md](docs/DMA_SIZING.md), or the app's Insights tab.
 
+## Cursor agent
+
+To let the Cursor CLI agent work on the repo with the project's limits, put `CURSOR_API_KEY` in `.env` (copy `.env.example`) and run `scripts/cursor_agent.ps1` or `scripts/cursor_agent.sh`. See [docs/CURSOR_AGENT.md](docs/CURSOR_AGENT.md).
+
 ## How results are measured
 
 Every detector is compared with the same code (`src/pipeline.py`): the simple flow rule, a flow + pressure rule, night flow (MNF), CUSUM and Isolation Forest. Training never uses the leak labels. Results are scored **per leak event** (events caught, real vs false alarm episodes, false alarms per zone-week, time to detect) with exact 95% confidence intervals and a random-alarm baseline. See [data/AquaWatch_Data_Notes.md](data/AquaWatch_Data_Notes.md) for the current table and [reports/AquaWatch industry readiness.md](reports/AquaWatch%20industry%20readiness.md) for the roadmap.
