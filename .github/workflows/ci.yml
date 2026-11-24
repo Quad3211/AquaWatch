@@ -31,8 +31,11 @@ jobs:
       - name: Lint
         run: uv run ruff check .
 
-      - name: Tests
-        run: uv run pytest -v
+      - name: Type check
+        run: uv run mypy
+
+      - name: Tests (with golden results and an 80% coverage gate)
+        run: uv run pytest -v --cov --cov-report=term
 
       - name: Train and evaluate end to end
         run: |

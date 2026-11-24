@@ -18,6 +18,8 @@ kept as secondary columns for comparison with earlier results.
 """
 from __future__ import annotations
 
+from typing import Any
+
 import numpy as np
 import pandas as pd
 from scipy.stats import binomtest
@@ -85,7 +87,7 @@ def true_events(scored: pd.DataFrame) -> pd.DataFrame:
     )
 
 
-def _overlaps(zone: str, start, end, others: pd.DataFrame) -> pd.Series:
+def _overlaps(zone: str, start: pd.Timestamp, end: pd.Timestamp, others: pd.DataFrame) -> pd.Series:
     return (others["zone"] == zone) & (others["start"] <= end) & (others["end"] >= start)
 
 
@@ -110,7 +112,7 @@ def _scoring_events(scored: pd.DataFrame, events: pd.DataFrame | None) -> tuple[
     return active[active["start"] >= lo], active
 
 
-def _detection_end(ev, detect_within_hours: float | None):
+def _detection_end(ev: Any, detect_within_hours: float | None) -> pd.Timestamp:
     if detect_within_hours is None:
         return ev.end
     return min(ev.end, ev.start + pd.Timedelta(hours=detect_within_hours))
@@ -166,7 +168,10 @@ def _detections_by_episode_start(
 
 
 def _classify_by_episode_start(
-    episodes: pd.DataFrame, to_score: pd.DataFrame, detections: pd.DataFrame, detect_within_hours
+    episodes: pd.DataFrame,
+    to_score: pd.DataFrame,
+    detections: pd.DataFrame,
+    detect_within_hours: float | None,
 ) -> tuple[int, int]:
     """(true, repeat) episode counts when leaks overlap, BattLeDIM-style.
 

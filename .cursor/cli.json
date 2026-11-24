@@ -3,6 +3,7 @@
     "allow": [
       "Shell(python:-m pytest*)",
       "Shell(python:-m ruff check*)",
+      "Shell(python:-m mypy*)",
       "Shell(python:scripts/AquaWatch_Evaluate.py*)",
       "Shell(python:scripts/dma_sizing_study.py analyse*)",
       "Shell(python:scripts/train_and_save_model.py*)",

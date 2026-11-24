@@ -36,6 +36,8 @@ Install once with `uv sync` (or `pip install -r requirements.txt`, which install
 ```bash
 python -m pytest -q                                   # all tests (includes the golden-results and app smoke tests)
 python -m ruff check .                                # lint (must pass)
+python -m mypy                                        # type check src/aquawatch (must pass)
+python -m pytest -q --cov                             # tests + coverage (CI fails below 80%)
 aquawatch evaluate --dataset simulated                # compare every detector on the 120-day simulation
 aquawatch evaluate --dataset battledim --profile rolling   # needs `aquawatch battledim fetch` + `prepare`
 aquawatch sizing analyse                              # DMA sizing study (docs/DMA_SIZING.md)
@@ -65,7 +67,7 @@ If a change is *meant* to move results, update the snapshot with
 | `src/aquawatch/simulate.py` | WNTR network and leak simulator |
 
 ## Definition of done
-- `python -m ruff check .` and `python -m pytest -q` pass.
+- `python -m ruff check .`, `python -m mypy` and `python -m pytest -q --cov` pass (coverage at least 80%).
 - If detection or evaluation changed, re-run `scripts/AquaWatch_Evaluate.py --dataset simulated` and update the numbers in `data/simulated/DATASHEET.md` and `data/AquaWatch_Data_Notes.md`.
 - Your final message says what changed, what you ran, and anything you did not verify.
 - Do not commit or push unless the person asks you to.

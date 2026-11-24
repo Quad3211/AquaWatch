@@ -67,7 +67,7 @@ def evaluate(
     print(f"Run {run.run_id} | dataset: {dataset} ({path.name}) | expected-flow profile: {profile}")
     print(f"Settings fingerprint: {run.settings_fingerprint} | code version: {run.code_version}")
     print(f"Rows: {len(df):,} | training window: {len(train):,} rows | held out from {cutoff}: {len(test):,}")
-    if events_are_truth:
+    if events_are_truth and events is not None:
         new = events[(events["start"] >= scored["timestamp"].min())]
         print(f"Leaks starting in the test window: {len(new)} (an alarm must come within "
               f"{detect_within} h of a leak's start to count; later alarms on it are repeats)")

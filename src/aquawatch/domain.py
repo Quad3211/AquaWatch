@@ -131,7 +131,7 @@ class RunInfo:
     code_version: str
 
     @staticmethod
-    def create(dataset: str, data_start, data_end, settings_fingerprint: str) -> RunInfo:
+    def create(dataset: str, data_start: object, data_end: object, settings_fingerprint: str) -> RunInfo:
         created = datetime.now(UTC)
         version = code_version()
         return RunInfo(

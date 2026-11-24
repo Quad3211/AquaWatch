@@ -20,6 +20,8 @@ the test window.
 """
 from __future__ import annotations
 
+from typing import Any
+
 import numpy as np
 import pandas as pd
 
@@ -116,7 +118,7 @@ def night_flow_scores(
     return scores.where(is_night, 0.0).fillna(0.0)
 
 
-def predict_night_flow(history: pd.DataFrame, frame: pd.DataFrame, **kwargs) -> pd.Series:
+def predict_night_flow(history: pd.DataFrame, frame: pd.DataFrame, **kwargs: Any) -> pd.Series:
     """Night-hour readings of nights whose score is above 1 (see ``night_flow_scores``)."""
     return (night_flow_scores(history, frame, **kwargs) > 1).astype(int)
 
@@ -157,7 +159,7 @@ def cusum_statistic(
     return test_part["_stat"].reindex(frame.index).fillna(0.0)
 
 
-def predict_cusum(train_features: pd.DataFrame, frame: pd.DataFrame, **kwargs) -> pd.Series:
+def predict_cusum(train_features: pd.DataFrame, frame: pd.DataFrame, **kwargs: Any) -> pd.Series:
     """Alarm while the CUSUM statistic is above ``h``."""
     h = kwargs.get("h")
     h = get_settings().cusum.h if h is None else h

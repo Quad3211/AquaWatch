@@ -36,6 +36,7 @@ project environment.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -132,7 +133,7 @@ def demand_multipliers(
     return np.clip(base * day_factor * hour_noise, 0.05, None)
 
 
-def build_network(cfg: SimConfig, rng: np.random.Generator):
+def build_network(cfg: SimConfig, rng: np.random.Generator) -> tuple[Any, list[Zone]]:
     """Reservoir -> trunk main -> five gridded zones, each with one inlet pipe."""
     import wntr
 
@@ -151,7 +152,7 @@ def build_network(cfg: SimConfig, rng: np.random.Generator):
         n_nodes = cfg.grid * cfg.grid
         mean_inflow = cfg.zone_mean_inflow_m3h[z]
         per_node_m3s = mean_inflow / SECONDS_PER_HOUR / n_nodes
-        noise_args = {}
+        noise_args: dict[str, Any] = {}
         if cfg.liters_per_customer_day is not None:
             zone_customers = mean_inflow * 24 * 1000 / cfg.liters_per_customer_day
             noise_args = {
@@ -255,7 +256,7 @@ def plan_leaks(cfg: SimConfig, zones: list[Zone], rng: np.random.Generator) -> p
     return plan
 
 
-def _leak_area_action(control_action_cls, node, area: float):
+def _leak_area_action(control_action_cls: Any, node: Any, area: float) -> Any:
     """A control action that changes a leak's size mid-simulation.
 
     WNTR 1.5 exposes ``leak_area`` as read-only, so a plain
@@ -271,7 +272,7 @@ def _leak_area_action(control_action_cls, node, area: float):
     return action
 
 
-def add_leaks(wn, plan: pd.DataFrame) -> None:
+def add_leaks(wn: Any, plan: pd.DataFrame) -> None:
     """Attach each planned leak to its node; incipient leaks grow in four steps."""
     from wntr.network.controls import Control, ControlAction, SimTimeCondition
 

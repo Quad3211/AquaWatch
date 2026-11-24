@@ -124,9 +124,11 @@ def analyse() -> None:
     print(f"Test window: 60 days x {len(SEEDS)} seeds. False alarms per zone-week in the last column.\n")
     for method in METHODS:
         part = summary[summary["method"] == method]
-        table = part.pivot(index="zone_m3h", columns="leak_m3h", values="caught_24h").astype(int).astype(str)
-        totals = part.pivot(index="zone_m3h", columns="leak_m3h", values="leaks").astype(int).astype(str)
-        table = table + "/" + totals
+        caught = part.pivot(index="zone_m3h", columns="leak_m3h", values="caught_24h")
+        totals = part.pivot(index="zone_m3h", columns="leak_m3h", values="leaks")
+        # Cells with no leaks of that size in that zone show "-" instead of crashing.
+        table = (caught.fillna(0).astype(int).astype(str) + "/" + totals.fillna(0).astype(int).astype(str))
+        table = table.where(totals.notna(), "-")
         table.columns = [f"{c:g} m3/h leak" for c in table.columns]
         table["false alarms/wk"] = part.groupby("zone_m3h")["false_alarms_per_week"].first()
         table.index = [f"{i:g} m3/h zone" for i in table.index]
