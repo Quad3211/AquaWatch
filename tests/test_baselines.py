@@ -18,7 +18,7 @@ if str(ROOT) not in sys.path:
 import config
 from src.baseline import predict_cusum, predict_flow_pressure_rule, predict_night_flow
 from src.data_loader import chronological_split, load_sensor_csv
-from src.metrics import compare_methods
+from src.metrics import RANDOM_NAME, compare_methods
 from src.pipeline import score_all_methods
 
 
@@ -80,7 +80,7 @@ def simulated_ladder():
 
 
 def test_every_detector_beats_random_on_simulated_data(simulated_ladder):
-    rand = simulated_ladder.loc["Random alarms (same rate as AI)"]
+    rand = simulated_ladder.loc[RANDOM_NAME]
     for method in ["Flow + pressure rule", "Night flow (MNF)", "CUSUM on flow", "Isolation Forest"]:
         row = simulated_ladder.loc[method]
         assert row["events_detected"] >= 15, method

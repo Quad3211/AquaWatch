@@ -78,6 +78,10 @@ python scripts/AquaWatch_Evaluate.py --dataset simulated
 
 See [data/simulated/DATASHEET.md](data/simulated/DATASHEET.md) for how it was made, how to regenerate it, and its limits.
 
+## Benchmark: BattLeDIM 2020
+
+To test on the standard public leak-detection benchmark (two years, 33 leaks, CC BY 4.0), run `scripts/fetch_battledim.py` then `scripts/prepare_battledim.py`. See [docs/BATTLEDIM.md](docs/BATTLEDIM.md) for how the data is mapped, how it is scored, and the results.
+
 ## How results are measured
 
 Every detector is compared with the same code (`src/pipeline.py`): the simple flow rule, a flow + pressure rule, night flow (MNF), CUSUM and Isolation Forest. Training never uses the leak labels. Results are scored **per leak event** (events caught, real vs false alarm episodes, false alarms per zone-week, time to detect) with exact 95% confidence intervals and a random-alarm baseline. See [data/AquaWatch_Data_Notes.md](data/AquaWatch_Data_Notes.md) for the current table and [reports/AquaWatch industry readiness.md](reports/AquaWatch%20industry%20readiness.md) for the roadmap.

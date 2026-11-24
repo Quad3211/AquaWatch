@@ -19,7 +19,7 @@ import pandas as pd
 from src.alerts import build_alert_table
 from src.baseline import predict_rule
 from src.data_loader import chronological_split, load_sensor_csv
-from src.metrics import alarm_episodes, compare_methods, proportion_ci
+from src.metrics import RANDOM_NAME, alarm_episodes, compare_methods, proportion_ci
 from src.model import (
     add_deviations,
     fit_detector,
@@ -59,18 +59,23 @@ def test_training_never_reads_labels(split):
 
 
 def test_event_level_quality_gates(scored):
-    """Regression gates: both detectors must catch most held-out leak events and
-    produce far fewer false alarms than random alarms at the same rate."""
+    """Regression gates on the 14-day demo CSV: both detectors catch most of its
+    3 held-out events.
+
+    There is deliberately no "beats random" check here. With the same alarm
+    budget as Isolation Forest, random alarms score about as well on this tiny
+    window (3 events, 4 days), so the CSV cannot separate them. That comparison
+    is gated on the 120-day simulation instead
+    (tests/test_baselines.py::test_every_detector_beats_random_on_simulated_data).
+    """
     table = compare_methods(scored).set_index("method")
     rule = table.loc["Simple flow rule"]
     ai = table.loc["Isolation Forest"]
-    rand = table.loc["Random alarms (same rate as AI)"]
 
     assert rule["events_total"] == 3
     assert ai["events_detected"] >= 2
     assert rule["events_detected"] >= 2
-    assert ai["episode_precision"] > rand["episode_precision"] + 0.2
-    assert ai["false_alarms_per_zone_week"] < rand["false_alarms_per_zone_week"] / 2
+    assert RANDOM_NAME in table.index
 
 
 def test_alarm_episodes_merge_consecutive_hours():

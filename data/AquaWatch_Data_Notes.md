@@ -37,12 +37,12 @@ Reproduce with `python scripts/AquaWatch_Evaluate.py`. An alarm episode is a run
 |---|---:|---:|---:|---:|---:|
 | Simple flow rule | 3/3 (29%-100%) | 8/11 (39%-94%) | 1.1 | 86% | 33% |
 | Isolation Forest | 3/3 (29%-100%) | 11/20 (32%-77%) | 3.1 | 84% | 83% |
-| Random alarms (same rate as AI) | 2/3 (9%-99%) | 3/46 (1%-18%) | 15.0 | 6% | 5% |
+| Random alarms (same alarm budget as AI) | 3/3 (29%-100%) | 7/17 (18%-67%) | 3.5 | 20% | 19% |
 
 On this hand-made CSV the weekday/weekend profile is slightly *worse* than hour-of-day (the hour-of-day profile gave 0.7 and 2.1 false alarms per zone-week). The CSV has no weekly pattern, and its 10-day training window has only 3 weekend days. On the 120-day WNTR dataset, which does have a weekly pattern, the profile cuts false alarms by about 6×; see `data/simulated/DATASHEET.md`. Use the WNTR dataset for judging methods.
 
 How to read this:
-- Both detectors caught all 3 held-out events and both are far better than random alarms.
+- Both detectors caught all 3 held-out events. Random alarms with the same budget as Isolation Forest (same number and length of alarms) did nearly as well, so this 4-day window cannot tell the detectors apart from chance.
 - Isolation Forest flags more *hours* of each leak (higher point-wise recall), but on this CSV it is **not better** than the simple rule at the event level, and it raises more separate false alarms.
 - Three events is far too few to separate the two methods: 3/3 is consistent with a true catch rate as low as 29%.
 - The earlier pitch figures (91.7% precision, 75.9% vs 37.9% recall) were point-wise and used labels in training; they should not be quoted as current results.
