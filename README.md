@@ -90,6 +90,10 @@ How small must a metered zone be for AquaWatch to find leaks? Simulated zones of
 
 To let the Cursor CLI agent work on the repo with the project's limits, put `CURSOR_API_KEY` in `.env` (copy `.env.example`) and run `scripts/cursor_agent.ps1` or `scripts/cursor_agent.sh`. See [docs/CURSOR_AGENT.md](docs/CURSOR_AGENT.md).
 
+## Building it out
+
+[docs/BUILD_GUIDE.md](docs/BUILD_GUIDE.md) lays out the path from this prototype to a pilot-ready system, step by step: package layout, a detector interface, walk-forward evaluation, supply cuts, storage, a scoring job, an incident workflow, an API, deployment and the pilot runbook.
+
 ## How results are measured
 
 Every detector is compared with the same code (`src/pipeline.py`): the simple flow rule, a flow + pressure rule, night flow (MNF), CUSUM and Isolation Forest. Training never uses the leak labels. Results are scored **per leak event** (events caught, real vs false alarm episodes, false alarms per zone-week, time to detect) with exact 95% confidence intervals and a random-alarm baseline. See [data/AquaWatch_Data_Notes.md](data/AquaWatch_Data_Notes.md) for the current table and [reports/AquaWatch industry readiness.md](reports/AquaWatch%20industry%20readiness.md) for the roadmap.
