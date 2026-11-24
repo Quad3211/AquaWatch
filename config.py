@@ -19,11 +19,32 @@ DOCS_DIR = PROJECT_ROOT / "docs"
 DEMO_CSV = DATA_DIR / "AquaWatch_Synthetic_Sensor_Data.csv"
 LEGACY_DEMO_CSV = DEMO_CSV  # alias while data/demo/ is introduced
 
+# WNTR-simulated dataset (scripts/simulate_network.py, see data/simulated/DATASHEET.md)
+SIM_DIR = DATA_DIR / "simulated"
+SIM_CSV = SIM_DIR / "aquawatch_wntr_readings.csv"
+SIM_EVENTS_CSV = SIM_DIR / "aquawatch_wntr_events.csv"
+SIM_TRAIN_CUTOFF = "2026-07-31"  # 60 days to learn from, 60 days held out
+
 # Chronological split: train before this timestamp, hold out from this day onward
 TRAIN_CUTOFF = "2026-11-11"
 
+# Expected-flow profile: "hour" (zone x hour of day), "day_type" (zone x
+# weekday/weekend x hour) or "hour_of_week" (zone x day of week x hour).
+PROFILE_BY = "day_type"
+
 # Baseline
 FLOW_RULE_THRESHOLD = 0.25
+
+# Baselines in src/baseline.py. Set in advance from standard practice, NOT tuned
+# on the test window (threshold tuning belongs on a validation window).
+FP_RULE_FLOW_Z = 2.5        # flow-and-pressure rule: flow this many robust SDs high...
+FP_RULE_PRESSURE_Z = 1.0    # ...and pressure this many robust SDs low, together
+MNF_NIGHT_HOURS = (2, 3, 4)  # minimum night flow window (local time)
+MNF_LOOKBACK_NIGHTS = 14     # baseline = median of previous nights
+MNF_K_MAD = 3.0              # flag nights this many robust SDs above the baseline...
+MNF_MIN_RISE = 0.05          # ...and at least this much higher (fraction)
+CUSUM_K = 0.5                # CUSUM allowance (robust SDs per hour)
+CUSUM_H = 8.0                # CUSUM alarm level (robust SDs)
 
 # Isolation Forest (freeze these before board review unless metrics break)
 IFOREST_N_ESTIMATORS = 300

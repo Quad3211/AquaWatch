@@ -22,6 +22,12 @@ dev = [
     "pip-audit>=2.7",
     "pre-commit>=3.5",
 ]
+# Only needed to regenerate data/simulated/ (scripts/simulate_network.py).
+# WNTR 1.5 has no Python 3.14 build yet, hence the marker.
+simulate = [
+    "wntr>=1.5,<2; python_version < '3.14'",
+    "six>=1.16; python_version < '3.14'",
+]
 
 [tool.uv]
 # This is an app, not a library to publish: install dependencies only.
