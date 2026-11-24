@@ -28,19 +28,22 @@ from aquawatch.metrics import (
 from aquawatch.model import add_deviations, load_model_artifacts, predict_isolation_forest
 from aquawatch.pipeline import score_all_methods
 from aquawatch.schema import find_gaps
+from aquawatch.settings import get_settings
+
+cfg = get_settings()
 
 UPLOAD = "Upload a CSV"
 DATASETS = {
     "Simulated network (WNTR, 120 days, 40 leaks)": {
         "path": config.SIM_CSV,
-        "cutoff": config.SIM_TRAIN_CUTOFF,
+        "cutoff": cfg.dataset("simulated").cutoff,
         "events": config.SIM_EVENTS_CSV,
         "flow_unit": "m³/h",
         "pressure_unit": "m",
     },
     "Original demo CSV (14 days, 6 events)": {
         "path": config.DEMO_CSV,
-        "cutoff": config.TRAIN_CUTOFF,
+        "cutoff": cfg.dataset("demo").cutoff,
         "events": None,
         "flow_unit": "units/h",
         "pressure_unit": "units",
@@ -98,7 +101,7 @@ with st.sidebar:
     detector = st.selectbox(
         "Raise alerts with",
         names,
-        index=names.index(config.DEFAULT_APP_DETECTOR),
+        index=names.index(cfg.app.default_detector),
         help="All detectors are scored in the Metrics tab; this one drives Overview, Alerts and Chart.",
     )
     st.caption(DETECTOR_HELP[detector])
@@ -163,7 +166,7 @@ incidents = build_event_alerts(
     prediction_col=pred_col,
     flow_unit=flow_unit,
     pressure_unit=pressure_unit,
-    max_gap_hours=config.INCIDENT_MERGE_HOURS,
+    max_gap_hours=cfg.app.incident_merge_hours,
 )
 stats = event_scores(scored, pred_col)
 test_start, test_end = scored["timestamp"].min(), scored["timestamp"].max()
@@ -194,7 +197,8 @@ with tab_overview:
     st.caption(
         f"Learned the normal pattern from {train_rows:,} readings before {cutoff}; "
         f"scored {len(scored):,} readings from then on. Expected flow is looked up by zone, "
-        f"hour and {'weekday/weekend' if config.PROFILE_BY == 'day_type' else config.PROFILE_BY}."
+        f"hour and {'weekday/weekend' if cfg.profile.by == 'day_type' else cfg.profile.by}. "
+        f"Settings fingerprint {cfg.fingerprint()}."
     )
     if len(incidents):
         by_zone = (
@@ -215,7 +219,7 @@ with tab_overview:
 with tab_alerts:
     st.subheader(f"Incidents to investigate ({detector})")
     st.caption(
-        f"Alarms in the same zone less than {config.INCIDENT_MERGE_HOURS} h apart are merged into one "
+        f"Alarms in the same zone less than {cfg.app.incident_merge_hours} h apart are merged into one "
         "incident and ranked by estimated extra water. Extra flow is measured against the zone's "
         "usual level for that hour and day type."
     )

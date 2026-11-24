@@ -11,6 +11,7 @@ import pandas as pd
 
 from aquawatch import config
 from aquawatch.schema import validate_sensor_frame
+from aquawatch.settings import get_settings
 
 REQUIRED_COLUMNS = {
     "timestamp",
@@ -22,7 +23,6 @@ REQUIRED_COLUMNS = {
 }
 
 DEFAULT_DATA = config.DEMO_CSV
-TRAIN_CUTOFF = config.TRAIN_CUTOFF
 
 
 def load_sensor_csv(source: str | Path | IO | None = None) -> pd.DataFrame:
@@ -59,7 +59,7 @@ def load_sensor_csv(source: str | Path | IO | None = None) -> pd.DataFrame:
 
 def chronological_split(df: pd.DataFrame, cutoff: str | None = None) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Split into train (< cutoff) and held-out test (>= cutoff)."""
-    cut = cutoff or TRAIN_CUTOFF
+    cut = cutoff or get_settings().dataset("demo").cutoff
     train = df[df["timestamp"] < cut].copy()
     test = df[df["timestamp"] >= cut].copy()
     if train.empty or test.empty:

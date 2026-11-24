@@ -15,14 +15,15 @@ from aquawatch import config
 from aquawatch.data_loader import chronological_split, load_sensor_csv
 from aquawatch.metrics import compare_methods
 from aquawatch.pipeline import score_all_methods
+from aquawatch.settings import get_settings
 
 ROOT = Path(__file__).resolve().parents[1]
 
 GOLDEN = Path(__file__).parent / "golden" / "event_results.json"
 FIELDS = ["events_total", "events_detected", "alarm_episodes", "false_episodes", "repeat_episodes"]
 DATASETS = {
-    "demo": (config.DEMO_CSV, config.TRAIN_CUTOFF),
-    "simulated": (config.SIM_CSV, config.SIM_TRAIN_CUTOFF),
+    "demo": (config.DEMO_CSV, get_settings().dataset("demo").cutoff),
+    "simulated": (config.SIM_CSV, get_settings().dataset("simulated").cutoff),
 }
 
 

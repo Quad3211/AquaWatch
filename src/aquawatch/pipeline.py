@@ -21,14 +21,17 @@ from aquawatch.model import (
     select_typical_rows,
     train_isolation_forest,
 )
-
-PROFILE_CHOICES = ["hour", "day_type", "hour_of_week", "rolling"]
+from aquawatch.settings import (
+    PROFILE_CHOICES,  # noqa: E402,F401  (re-exported)
+    get_settings,
+)
 
 
 def score_all_methods(
     train: pd.DataFrame, test: pd.DataFrame, profile_by: str | None = None
 ) -> pd.DataFrame:
     """Fit on the training window (no labels) and add every method's alarms to the test rows."""
+    profile_by = profile_by or get_settings().profile.by
     if profile_by == "rolling":
         # Baseline = median of the previous weeks, updated as time moves on.
         train_features, scored = add_rolling_deviations(train, test)

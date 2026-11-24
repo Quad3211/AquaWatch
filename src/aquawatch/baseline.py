@@ -23,9 +23,8 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from aquawatch import config
+from aquawatch.settings import get_settings
 
-FLOW_THRESHOLD = config.FLOW_RULE_THRESHOLD
 MAD_TO_SD = 1.4826  # scales a median absolute deviation to a standard deviation
 
 
@@ -33,7 +32,7 @@ def predict_rule(frame: pd.DataFrame, flow_rel_col: str = "flow_rel_dev") -> pd.
     """Return 1/0 predictions for the simple flow rule."""
     if flow_rel_col not in frame.columns:
         raise KeyError(f"Missing column required by baseline: {flow_rel_col}")
-    return (frame[flow_rel_col] > FLOW_THRESHOLD).astype(int)
+    return (frame[flow_rel_col] > get_settings().rules.flow_threshold).astype(int)
 
 
 def robust_scales(train_features: pd.DataFrame) -> pd.DataFrame:
@@ -63,8 +62,8 @@ def predict_flow_pressure_rule(
     pressure_z: float | None = None,
 ) -> pd.Series:
     """Flag hours where flow is high *and* pressure is low versus the zone's usual spread."""
-    flow_z = config.FP_RULE_FLOW_Z if flow_z is None else flow_z
-    pressure_z = config.FP_RULE_PRESSURE_Z if pressure_z is None else pressure_z
+    flow_z = get_settings().rules.fp_flow_z if flow_z is None else flow_z
+    pressure_z = get_settings().rules.fp_pressure_z if pressure_z is None else pressure_z
     scales = robust_scales(train_features)
     zf = _robust_z(frame, scales, "flow_rel_dev")
     zp = _robust_z(frame, scales, "pressure_dev")
@@ -89,10 +88,10 @@ def predict_night_flow(
     of a flagged night become alarms. ``history`` is earlier data (the training
     window) so the first test nights have a baseline.
     """
-    night_hours = night_hours or config.MNF_NIGHT_HOURS
-    lookback = lookback_nights or config.MNF_LOOKBACK_NIGHTS
-    k_mad = config.MNF_K_MAD if k_mad is None else k_mad
-    min_rise = config.MNF_MIN_RISE if min_rise is None else min_rise
+    night_hours = night_hours or get_settings().night_flow.hours
+    lookback = lookback_nights or get_settings().night_flow.lookback_nights
+    k_mad = get_settings().night_flow.k_mad if k_mad is None else k_mad
+    min_rise = get_settings().night_flow.min_rise if min_rise is None else min_rise
 
     both = pd.concat([history, frame], ignore_index=True).drop_duplicates(["zone", "timestamp"])
     night = both[both["timestamp"].dt.hour.isin(night_hours)].copy()
@@ -129,8 +128,8 @@ def predict_cusum(
     after a repair. The sum runs over training and test hours in time order, so
     it is warmed up when the test window starts, and only the past is used.
     """
-    k = config.CUSUM_K if k is None else k
-    h = config.CUSUM_H if h is None else h
+    k = get_settings().cusum.k if k is None else k
+    h = get_settings().cusum.h if h is None else h
     scales = robust_scales(train_features)
     both = pd.concat(
         [train_features.assign(_test=False), frame.assign(_test=True)], ignore_index=False

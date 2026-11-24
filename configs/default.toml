@@ -1,0 +1,56 @@
+# AquaWatch detector and evaluation settings.
+#
+# These are research parameters, fixed in advance. Do NOT change them to make
+# test results look better; tune on a separate validation window and say so
+# (AGENTS.md rule 2). Every evaluation prints a fingerprint of these values.
+#
+# Override any value without editing this file with an environment variable:
+#   AQUAWATCH__<SECTION>__<KEY>=<value>   e.g.  AQUAWATCH__CUSUM__H=10
+# or point AQUAWATCH_CONFIG at another TOML file.
+
+[profile]
+# How expected flow is looked up: "hour" (zone x hour of day), "day_type"
+# (zone x weekday/weekend x hour), "hour_of_week" (zone x day of week x hour)
+# or "rolling" (median of the previous rolling_days days, updated over time).
+by = "day_type"
+rolling_days = 28
+
+[isolation_forest]
+n_estimators = 300
+contamination = 0.01
+random_state = 17
+# Training rows with a robust z-score above this on flow or pressure deviation
+# are treated as already abnormal and left out of training (no labels used).
+robust_z_cutoff = 3.5
+
+[rules]
+flow_threshold = 0.25     # simple rule: flow more than 25% above expected
+fp_flow_z = 2.5           # flow + pressure rule: flow this many robust SDs high...
+fp_pressure_z = 1.0       # ...and pressure this many robust SDs low, together
+
+[night_flow]
+hours = [2, 3, 4]         # minimum night flow window (local time)
+lookback_nights = 14      # baseline = median of the previous nights
+k_mad = 3.0               # flag nights this many robust SDs above the baseline...
+min_rise = 0.05           # ...and at least this much higher (fraction)
+
+[cusum]
+k = 0.5                   # allowance (robust SDs per hour)
+h = 8.0                   # alarm level (robust SDs)
+
+# Train before `cutoff`, hold out from it onward.
+[datasets.demo]
+cutoff = "2026-11-11"
+
+[datasets.simulated]
+cutoff = "2026-07-31"     # 60 days to learn from, 60 days held out
+
+[datasets.battledim]
+cutoff = "2019-01-01"     # train on 2018, test on 2019, as in the competition
+# Leaks there run for months, so an alarm only "detects" a leak if it starts
+# within this many hours of the leak; later alarms on it are repeats.
+detect_within_hours = 168
+
+[app]
+incident_merge_hours = 12 # alarms in a zone closer than this are one incident
+default_detector = "Flow + pressure rule"

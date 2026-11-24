@@ -10,7 +10,7 @@ AquaWatch Jamaica is a university group project. It is a research prototype that
 - The Streamlit app: `app.py`
 - Tests: `tests/`
 - Scripts: `scripts/`
-- Settings: `src/aquawatch/config.py`, but only with a stated reason, because thresholds there are fixed in advance on purpose
+- Settings: `configs/default.toml` (thresholds, cutoffs) and `src/aquawatch/config.py` (paths), but only with a stated reason, because thresholds are fixed in advance on purpose
 - Docs: `README.md`, `docs/`, `data/**/DATASHEET.md`, `data/AquaWatch_Data_Notes.md`
 
 ## Out of scope: ask first
@@ -24,7 +24,7 @@ AquaWatch Jamaica is a university group project. It is a research prototype that
 
 ## Hard rules (results must stay honest)
 1. **Never use leak labels for training.** `simulated_leak_label` and `simulated_event_id` may only be used to score results. `tests/test_pipeline.py::test_training_never_reads_labels` must keep passing.
-2. **Never tune thresholds on the test window.** Defaults live in `src/aquawatch/config.py`. Any tuning must use a separate validation window, and you must say so.
+2. **Never tune thresholds on the test window.** Defaults live in `configs/default.toml` (check them with `aquawatch config`). Any tuning must use a separate validation window, and you must say so.
 3. **Report results per leak event**, using `src/aquawatch/metrics.py`: events caught, real vs false alarms, false alarms per zone-week, and time to detect, with 95% CIs and the random baseline. Do not quote point-wise precision or recall on its own.
 4. **Never overstate claims.** An alert means "investigate this pattern", not "leak confirmed". Keep the simulated-data banner and wording in the app. Do not claim real-world accuracy, water savings or NWC endorsement.
 5. **Never commit model files** (`models/` is gitignored; pickle/joblib can run code when loaded). Save models with skops via `src/aquawatch/model.py`.

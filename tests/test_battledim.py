@@ -18,6 +18,7 @@ from aquawatch import config
 from aquawatch.battledim import convert, read_leak_list
 from aquawatch.metrics import alarm_episodes, compare_methods, event_scores, random_alarms
 from aquawatch.model import add_rolling_deviations
+from aquawatch.settings import get_settings
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -140,10 +141,10 @@ def test_real_battledim_runs_end_to_end():
 
     df = load_sensor_csv(config.BATTLEDIM_CSV)
     events = pd.read_csv(config.BATTLEDIM_EVENTS_CSV, parse_dates=["start", "end"])
-    train, test = chronological_split(df, config.BATTLEDIM_TRAIN_CUTOFF)
+    train, test = chronological_split(df, get_settings().dataset("battledim").cutoff)
     table = compare_methods(
         score_all_methods(train, test, profile_by="rolling"),
         events=events,
-        detect_within_hours=config.BATTLEDIM_DETECT_WITHIN_HOURS,
+        detect_within_hours=get_settings().dataset("battledim").detect_within_hours,
     )
     assert (table["events_total"] == 19).all()

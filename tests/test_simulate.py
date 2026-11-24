@@ -15,6 +15,7 @@ import pytest
 
 from aquawatch import config
 from aquawatch.data_loader import chronological_split, load_sensor_csv
+from aquawatch.settings import get_settings
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -47,7 +48,7 @@ def test_leaks_do_not_overlap_within_a_zone(sim_events):
 
 
 def test_both_windows_contain_many_events(sim_readings):
-    train, test = chronological_split(sim_readings, config.SIM_TRAIN_CUTOFF)
+    train, test = chronological_split(sim_readings, get_settings().dataset("simulated").cutoff)
     for window in (train, test):
         events = window.loc[window["simulated_leak_label"] == 1, "simulated_event_id"].nunique()
         assert events >= 15
@@ -78,7 +79,7 @@ def test_day_type_profile_removes_weekend_false_alarms(sim_readings):
     from aquawatch.metrics import compare_methods
     from aquawatch.model import run_detection
 
-    train, test = chronological_split(sim_readings, config.SIM_TRAIN_CUTOFF)
+    train, test = chronological_split(sim_readings, get_settings().dataset("simulated").cutoff)
     results = {}
     for profile in ("hour", "day_type"):
         scored, _ = run_detection(train, test, profile_by=profile)

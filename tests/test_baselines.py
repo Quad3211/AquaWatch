@@ -15,6 +15,7 @@ from aquawatch.baseline import predict_cusum, predict_flow_pressure_rule, predic
 from aquawatch.data_loader import chronological_split, load_sensor_csv
 from aquawatch.metrics import RANDOM_NAME, compare_methods
 from aquawatch.pipeline import score_all_methods
+from aquawatch.settings import get_settings
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -64,7 +65,7 @@ def test_night_flow_flags_raised_nights_only():
     leak.loc[night, "flow_index"] += 10  # +20% for the whole day
     alarms = predict_night_flow(history, leak)
     flagged_hours = set(leak.loc[alarms == 1, "timestamp"].dt.hour)
-    assert flagged_hours == set(config.MNF_NIGHT_HOURS)
+    assert flagged_hours == set(get_settings().night_flow.hours)
     assert (leak.loc[alarms == 1, "timestamp"].dt.normalize() == pd.Timestamp("2026-01-28")).all()
     assert predict_night_flow(history, test).sum() == 0
 
@@ -72,7 +73,7 @@ def test_night_flow_flags_raised_nights_only():
 @pytest.fixture(scope="module")
 def simulated_ladder():
     df = load_sensor_csv(config.SIM_CSV)
-    train, test = chronological_split(df, config.SIM_TRAIN_CUTOFF)
+    train, test = chronological_split(df, get_settings().dataset("simulated").cutoff)
     return compare_methods(score_all_methods(train, test)).set_index("method")
 
 

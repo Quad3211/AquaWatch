@@ -22,18 +22,14 @@ from aquawatch.metrics import (
     true_events,
 )
 from aquawatch.pipeline import score_all_methods
+from aquawatch.settings import get_settings
 
-# name -> (readings CSV, train/test cutoff, events CSV, events are ground truth?, detection window h)
+# name -> (readings CSV, events CSV, events are the ground truth?). Cutoffs and the
+# detection window come from the settings ([datasets.<name>]).
 DATASETS = {
-    "demo": (config.DEMO_CSV, config.TRAIN_CUTOFF, None, False, None),
-    "simulated": (config.SIM_CSV, config.SIM_TRAIN_CUTOFF, config.SIM_EVENTS_CSV, False, None),
-    "battledim": (
-        config.BATTLEDIM_CSV,
-        config.BATTLEDIM_TRAIN_CUTOFF,
-        config.BATTLEDIM_EVENTS_CSV,
-        True,
-        config.BATTLEDIM_DETECT_WITHIN_HOURS,
-    ),
+    "demo": (config.DEMO_CSV, None, False),
+    "simulated": (config.SIM_CSV, config.SIM_EVENTS_CSV, False),
+    "battledim": (config.BATTLEDIM_CSV, config.BATTLEDIM_EVENTS_CSV, True),
 }
 
 
@@ -44,10 +40,13 @@ def evaluate(
     detect_within: float | None = None,
 ) -> None:
     """Score every detector on one dataset and print the event-level comparison."""
-    profile = profile or config.PROFILE_BY
+    profile = profile or get_settings().profile.by
     override_window = detect_within
 
-    path, default_cutoff, events_path, events_are_truth, detect_within = DATASETS[dataset]
+    settings = get_settings()
+    path, events_path, events_are_truth = DATASETS[dataset]
+    default_cutoff = settings.dataset(dataset).cutoff
+    detect_within = settings.dataset(dataset).detect_within_hours if events_are_truth else None
     cutoff = cutoff or default_cutoff
     if override_window is not None and events_are_truth:
         detect_within = override_window
@@ -63,7 +62,8 @@ def evaluate(
     truth = events if events_are_truth else None
     table = format_comparison(compare_methods(scored, events=truth, detect_within_hours=detect_within))
 
-    print(f"Dataset: {dataset} ({path.name}) | expected-flow profile: {profile}")
+    print(f"Dataset: {dataset} ({path.name}) | expected-flow profile: {profile} | "
+          f"settings fingerprint: {settings.fingerprint()}")
     print(f"Rows: {len(df):,} | training window: {len(train):,} rows | held out from {cutoff}: {len(test):,}")
     if events_are_truth:
         new = events[(events["start"] >= scored["timestamp"].min())]

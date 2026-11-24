@@ -27,6 +27,7 @@
       "Write(**/.env*)",
       "Write(.github/**)",
       "Write(.cursor/**)",
+      "Write(configs/**)",
       "Write(AGENTS.md)",
       "Write(src/aquawatch/config.py)",
       "Write(pyproject.toml)",

@@ -1,5 +1,5 @@
 ---
-globs: src/aquawatch/model.py, src/aquawatch/baseline.py, src/aquawatch/pipeline.py, src/aquawatch/metrics.py, scripts/AquaWatch_Evaluate.py, src/aquawatch/config.py
+globs: src/aquawatch/model.py, src/aquawatch/baseline.py, src/aquawatch/pipeline.py, src/aquawatch/metrics.py, src/aquawatch/report.py, src/aquawatch/settings.py, configs/default.toml
 alwaysApply: false
 ---
 
@@ -8,7 +8,7 @@ When you change detection or evaluation code:
 - All training must be label-free.
   - `fit_detector` and every baseline may read only flow, pressure, time and zone.
   - Labels are for `src/aquawatch/metrics.py` scoring only.
-- Thresholds in `src/aquawatch/config.py` are fixed in advance. Do not change them to improve test results. Tuning needs a separate validation window, documented in the code and docs.
+- Thresholds in `configs/default.toml` are fixed in advance. Do not change them to improve test results. Tuning needs a separate validation window, documented in the code and docs.
 - Every new detector must:
   - be added to `METHODS` in `src/aquawatch/metrics.py`
   - be computed in `src/aquawatch/pipeline.py::score_all_methods`

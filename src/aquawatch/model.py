@@ -17,6 +17,7 @@ import skops.io as sio
 from sklearn.ensemble import IsolationForest
 
 from aquawatch import config
+from aquawatch.settings import get_settings
 
 FEATURE_COLS = ["flow_rel_dev", "pressure_dev"]
 
@@ -51,11 +52,11 @@ def build_zone_hour_profile(train: pd.DataFrame, by: str | None = None) -> pd.Da
 
     Uses the median of *all* training rows, so no labels are needed. The median
     is robust: a few leak hours in the training window barely move it, unlike
-    the mean. ``by`` is a key of ``PROFILE_KEYS`` (default ``config.PROFILE_BY``).
+    the mean. ``by`` is a key of ``PROFILE_KEYS`` (default ``get_settings().profile.by``).
     """
     if train.empty:
         raise ValueError("No training rows are available.")
-    by = by or config.PROFILE_BY
+    by = by or get_settings().profile.by
     if by not in PROFILE_KEYS:
         raise ValueError(f"Unknown profile type {by!r}; choose from {sorted(PROFILE_KEYS)}.")
     return (
@@ -83,7 +84,7 @@ def add_rolling_deviations(
     Returns (history_features, frame_features). History rows without a full
     window behind them are dropped.
     """
-    days = days or config.ROLLING_PROFILE_DAYS
+    days = days or get_settings().profile.rolling_days
     both = add_calendar_columns(
         pd.concat([history.assign(_part="history"), frame.assign(_part="frame")], ignore_index=True)
     ).sort_values(["zone", "day_type", "hour", "timestamp"])
@@ -115,7 +116,7 @@ def select_typical_rows(features: pd.DataFrame, z_cutoff: float | None = None) -
     Isolation Forest's training set, so past leaks in the history do not teach
     the model that leaks are normal.
     """
-    cutoff = config.ROBUST_Z_CUTOFF if z_cutoff is None else z_cutoff
+    cutoff = get_settings().isolation_forest.robust_z_cutoff if z_cutoff is None else z_cutoff
     keep = pd.Series(True, index=features.index)
     for col in FEATURE_COLS:
         grouped = features.groupby("zone")[col]
@@ -152,10 +153,11 @@ def train_isolation_forest(
     random_state: int | None = None,
 ) -> IsolationForest:
     """Fit Isolation Forest on normal deviation features only (no labels)."""
+    cfg = get_settings().isolation_forest
     model = IsolationForest(
-        n_estimators=n_estimators if n_estimators is not None else config.IFOREST_N_ESTIMATORS,
-        contamination=contamination if contamination is not None else config.IFOREST_CONTAMINATION,
-        random_state=random_state if random_state is not None else config.IFOREST_RANDOM_STATE,
+        n_estimators=n_estimators if n_estimators is not None else cfg.n_estimators,
+        contamination=contamination if contamination is not None else cfg.contamination,
+        random_state=random_state if random_state is not None else cfg.random_state,
     )
     model.fit(train_features[FEATURE_COLS])
     return model
@@ -204,9 +206,10 @@ def save_model_artifacts(
         "profile_file": profile_path.name,
         "features": FEATURE_COLS,
         "params": model.get_params(),
-        "robust_z_cutoff": config.ROBUST_Z_CUTOFF,
+        "robust_z_cutoff": get_settings().isolation_forest.robust_z_cutoff,
+        "settings_fingerprint": get_settings().fingerprint(),
         "profile_keys": profile_keys(profile),
-        "train_cutoff": config.TRAIN_CUTOFF,
+        "train_cutoff": get_settings().dataset("demo").cutoff,
         "train_rows": None if train is None else len(train),
         "train_data_sha256_16": None if train is None else data_fingerprint(train),
         "sklearn_version": sklearn.__version__,

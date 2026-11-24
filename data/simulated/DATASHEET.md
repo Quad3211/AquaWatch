@@ -37,10 +37,10 @@ Options: `--days`, `--seed`, `--out`. The default is seed 13, 120 days from 2026
 A reading is labelled 1 while its zone has a leak releasing more than 0.0001 m³/h.
 
 ## Train / test split
-`config.SIM_TRAIN_CUTOFF = 2026-07-31` gives 60 days for training and 60 days held out. 20 leaks start in each half. One leak runs across the cutoff, so 21 leaks are scored in the test window. Training does not use the labels.
+The cutoff `2026-07-31` (`[datasets.simulated]` in `configs/default.toml`) gives 60 days for training and 60 days held out. 20 leaks start in each half. One leak runs across the cutoff, so 21 leaks are scored in the test window. Training does not use the labels.
 
 ## Results (`python scripts/AquaWatch_Evaluate.py --dataset simulated`)
-21 leaks are scored in the test window. Expected flow uses the weekday/weekend × hour profile (`config.PROFILE_BY = "day_type"`). Baseline thresholds are set once in `config.py` from standard practice; they were not tuned on the test window.
+21 leaks are scored in the test window. Expected flow uses the weekday/weekend × hour profile (`[profile] by = "day_type"` in `configs/default.toml`). Baseline thresholds are set once in `config.py` from standard practice; they were not tuned on the test window.
 
 | Method | Leak events caught | Real / all alarms | False alarms per zone-week | Median hours to detect | Leaks < 5% of inflow caught |
 |---|---|---|---|---|---|

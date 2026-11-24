@@ -31,7 +31,7 @@ The simulated flow series includes a daily usage pattern and noise. Artificial l
 - Data is split chronologically, not randomly. The last four days are held out from training. They contain **3 injected events** (SIM-04, SIM-05, SIM-06; 58 readings).
 
 ### Held-out results (event-level)
-Reproduce with `python scripts/AquaWatch_Evaluate.py`. An alarm episode is a run of flagged hours in one zone. Ranges are exact 95% confidence intervals. Expected flow uses a weekday/weekend × hour profile (`config.PROFILE_BY = "day_type"`); add `--profile hour` for the older hour-of-day profile.
+Reproduce with `aquawatch evaluate --dataset demo`. An alarm episode is a run of flagged hours in one zone. Ranges are exact 95% confidence intervals. Expected flow uses a weekday/weekend × hour profile (`[profile] by = "day_type"` in `configs/default.toml`); add `--profile hour` for the older hour-of-day profile.
 
 | Method | Leak events caught | Real alarms / all alarms | False alarms per zone-week | Point-wise precision | Point-wise recall |
 |---|---:|---:|---:|---:|---:|

@@ -5,6 +5,7 @@
     aquawatch simulate [--days --seed --out]   # needs WNTR (Python <= 3.13)
     aquawatch sizing simulate|analyse   # DMA sizing study (simulate needs WNTR)
     aquawatch battledim fetch|prepare   # download + convert the BattLeDIM benchmark
+    aquawatch config                    # show effective settings + fingerprint
 
 Heavy imports happen inside each command, so `aquawatch --help` stays fast and
 commands that need optional packages (WNTR) only fail when actually used.
@@ -75,6 +76,18 @@ def _battledim(args: argparse.Namespace) -> int:
     return 0
 
 
+def _config(args: argparse.Namespace) -> int:
+    import json
+    from dataclasses import asdict
+
+    from aquawatch.settings import get_settings
+
+    settings = get_settings()
+    print(json.dumps(asdict(settings), indent=2, default=str))
+    print(f"fingerprint: {settings.fingerprint()}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="aquawatch", description="AquaWatch research prototype tools.")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -85,8 +98,8 @@ def build_parser() -> argparse.ArgumentParser:
     ev.add_argument(
         "--profile",
         choices=["hour", "day_type", "hour_of_week", "rolling"],
-        help="How expected flow is looked up (default config.PROFILE_BY). 'rolling' = median of the "
-        "previous ROLLING_PROFILE_DAYS days, updated over time.",
+        help="How expected flow is looked up (default: [profile] by in configs/default.toml). "
+        "'rolling' = median of the previous rolling_days days, updated over time.",
     )
     ev.add_argument(
         "--detect-within",
@@ -107,6 +120,9 @@ def build_parser() -> argparse.ArgumentParser:
     sz = sub.add_parser("sizing", help="DMA sizing study (docs/DMA_SIZING.md).")
     sz.add_argument("step", choices=["simulate", "analyse"])
     sz.set_defaults(func=_sizing)
+
+    cf = sub.add_parser("config", help="Show the effective settings and their fingerprint.")
+    cf.set_defaults(func=_config)
 
     bd = sub.add_parser("battledim", help="BattLeDIM benchmark (docs/BATTLEDIM.md).")
     bd.add_argument("step", choices=["fetch", "prepare"])
