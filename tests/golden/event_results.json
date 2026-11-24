@@ -1,0 +1,90 @@
+{
+  "demo": {
+    "CUSUM on flow": {
+      "alarm_episodes": 4,
+      "events_detected": 3,
+      "events_total": 3,
+      "false_episodes": 1,
+      "repeat_episodes": 0
+    },
+    "Flow + pressure rule": {
+      "alarm_episodes": 23,
+      "events_detected": 3,
+      "events_total": 3,
+      "false_episodes": 9,
+      "repeat_episodes": 0
+    },
+    "Isolation Forest": {
+      "alarm_episodes": 20,
+      "events_detected": 3,
+      "events_total": 3,
+      "false_episodes": 9,
+      "repeat_episodes": 0
+    },
+    "Night flow (MNF)": {
+      "alarm_episodes": 0,
+      "events_detected": 0,
+      "events_total": 3,
+      "false_episodes": 0,
+      "repeat_episodes": 0
+    },
+    "Random alarms (same budget as AI)": {
+      "alarm_episodes": 17,
+      "events_detected": 3,
+      "events_total": 3,
+      "false_episodes": 10,
+      "repeat_episodes": 0
+    },
+    "Simple flow rule": {
+      "alarm_episodes": 11,
+      "events_detected": 3,
+      "events_total": 3,
+      "false_episodes": 3,
+      "repeat_episodes": 0
+    }
+  },
+  "simulated": {
+    "CUSUM on flow": {
+      "alarm_episodes": 37,
+      "events_detected": 21,
+      "events_total": 21,
+      "false_episodes": 15,
+      "repeat_episodes": 0
+    },
+    "Flow + pressure rule": {
+      "alarm_episodes": 154,
+      "events_detected": 19,
+      "events_total": 21,
+      "false_episodes": 17,
+      "repeat_episodes": 0
+    },
+    "Isolation Forest": {
+      "alarm_episodes": 167,
+      "events_detected": 18,
+      "events_total": 21,
+      "false_episodes": 39,
+      "repeat_episodes": 0
+    },
+    "Night flow (MNF)": {
+      "alarm_episodes": 44,
+      "events_detected": 18,
+      "events_total": 21,
+      "false_episodes": 0,
+      "repeat_episodes": 0
+    },
+    "Random alarms (same budget as AI)": {
+      "alarm_episodes": 161,
+      "events_detected": 18,
+      "events_total": 21,
+      "false_episodes": 126,
+      "repeat_episodes": 0
+    },
+    "Simple flow rule": {
+      "alarm_episodes": 36,
+      "events_detected": 10,
+      "events_total": 21,
+      "false_episodes": 0,
+      "repeat_episodes": 0
+    }
+  }
+}
