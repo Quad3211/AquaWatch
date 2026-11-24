@@ -1,0 +1,21 @@
+---
+description: AquaWatch scope and honesty guardrails. Always applies.
+alwaysApply: true
+---
+
+Follow `AGENTS.md` at the repo root. It defines the project's scope, its hard rules and when a task is done.
+
+The short version:
+
+- Work only on what the task asks, inside `src/`, `app.py`, `tests/`, `scripts/` and the docs listed in AGENTS.md.
+- Ask the person before you:
+  - add or upgrade a dependency
+  - change CI
+  - download anything
+  - delete files
+  - touch git history
+  - add a new framework or service
+- Never use `simulated_leak_label` or `simulated_event_id` in training. Never tune thresholds on the test window.
+- Never write code that connects to or controls real utility systems. This project is read-only analytics on simulated data.
+- Keep claims honest: an alert means "investigate", not "leak confirmed".
+- Before you finish, run `python -m ruff check .` and `python -m pytest -q`, and report the results. Do not commit or push unless asked.

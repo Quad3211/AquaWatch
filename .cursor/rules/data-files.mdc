@@ -1,0 +1,11 @@
+---
+globs: data/**, src/simulate.py, scripts/simulate_network.py, src/schema.py
+alwaysApply: false
+---
+
+When you work with data:
+
+- Never edit `data/simulated/*.csv` by hand. Regenerate it with `scripts/simulate_network.py` (seeded, so it can be reproduced) and update `DATASHEET.md`.
+- Never add real customer or personal data, or any data whose licence is unclear.
+- Large external datasets go in `data/external/`, which is gitignored and never committed. Ask the person before downloading anything.
+- Every CSV the pipeline reads must pass `src/schema.py::validate_sensor_frame`.
