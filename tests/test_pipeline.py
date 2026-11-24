@@ -164,3 +164,40 @@ def test_split_explains_out_of_range_dates():
     early = df[df["timestamp"] < "2026-11-05"]
     with pytest.raises(ValueError, match="cutoff"):
         chronological_split(early)
+
+
+def test_event_alerts_one_row_per_episode(scored):
+    from src.alerts import build_event_alerts
+    from src.metrics import alarm_episodes
+
+    events = build_event_alerts(scored, prediction_col="ai_pred", flow_unit="units/h")
+    assert len(events) == len(alarm_episodes(scored, "ai_pred"))
+    assert list(events["priority"]) == list(range(1, len(events) + 1))
+    assert (events["est_volume_lost_units"] >= 0).all()
+    assert events["est_volume_lost_units"].is_monotonic_decreasing
+    assert set(events["matches_injected_leak"]) <= {"no (false alarm)"} | set(
+        scored["simulated_event_id"]
+    )
+
+
+def test_merging_alarms_gives_fewer_incidents(scored):
+    from src.alerts import build_event_alerts
+
+    raw = build_event_alerts(scored, prediction_col="ai_pred", max_gap_hours=1)
+    merged = build_event_alerts(scored, prediction_col="ai_pred", max_gap_hours=12)
+    assert 0 < len(merged) <= len(raw)
+
+
+def test_app_runs_for_every_dataset_and_detector():
+    from streamlit.testing.v1 import AppTest
+
+    from src.metrics import METHODS
+
+    at = AppTest.from_file(str(ROOT / "app.py"), default_timeout=300).run()
+    for dataset in at.sidebar.radio[0].options[:2]:  # the two built-in datasets
+        at.sidebar.radio[0].set_value(dataset).run()
+        for detector in METHODS:
+            at.sidebar.selectbox[0].set_value(detector).run()
+            assert not at.exception, (dataset, detector)
+            assert not at.error, (dataset, detector, [e.value for e in at.error])
+            assert len(at.metric) == 4

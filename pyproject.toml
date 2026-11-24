@@ -11,7 +11,7 @@ dependencies = [
     "scipy>=1.10,<2",
     "skops>=0.10,<1",
     "pandera>=0.24,<1",
-    "streamlit>=1.28,<2",
+    "streamlit>=1.50,<2",
     "plotly>=5.18,<8",
 ]
 

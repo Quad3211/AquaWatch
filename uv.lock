@@ -86,7 +86,7 @@ requires-dist = [
     { name = "scikit-learn", specifier = ">=1.3,<2" },
     { name = "scipy", specifier = ">=1.10,<2" },
     { name = "skops", specifier = ">=0.10,<1" },
-    { name = "streamlit", specifier = ">=1.28,<2" },
+    { name = "streamlit", specifier = ">=1.50,<2" },
 ]
 
 [package.metadata.requires-dev]

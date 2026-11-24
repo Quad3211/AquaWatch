@@ -57,6 +57,11 @@ MODEL_PATH = MODELS_DIR / "isolation_forest.skops"  # generated, not committed
 MODEL_METADATA_PATH = MODELS_DIR / "model_metadata.json"
 PROFILE_PATH = MODELS_DIR / "zone_hour_profile.csv"
 
+# App: alarms in the same zone less than this many hours apart are shown as one
+# incident in the Alerts tab (metrics still count raw 1-hour-gap episodes).
+INCIDENT_MERGE_HOURS = 12
+DEFAULT_APP_DETECTOR = "Flow + pressure rule"
+
 # UI honesty banner (guide §14.3 / §15)
 SIMULATED_DATA_BANNER = "Research Prototype: Simulated Utility Data"
 

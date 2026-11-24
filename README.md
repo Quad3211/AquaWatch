@@ -54,6 +54,20 @@ uv run pre-commit install    # optional: lint + large-file check before each com
 
 If you change dependencies, edit both `pyproject.toml` and `requirements.txt`, then run `uv lock`. GitHub Actions (`.github/workflows/ci.yml`) runs lock check, lint, tests, train + evaluate and `pip-audit` on every pull request. Dependabot opens weekly dependency PRs.
 
+## Using the app
+
+`python -m streamlit run app.py`, then in the sidebar:
+
+- **Dataset:** the 120-day simulated network (default), the original 14-day demo CSV, or your own upload (you pick the training cutoff).
+- **Detector:** simple flow rule, flow + pressure rule (default), night flow, CUSUM or Isolation Forest.
+
+Tabs:
+
+- **Overview:** headline numbers and which zones to check first.
+- **Alerts:** incidents ranked by estimated extra water, each with a plain-language reason. Alarms less than 12 h apart in a zone are merged into one incident.
+- **Chart:** measured vs expected flow and pressure, with injected leaks shaded and alarms marked.
+- **Metrics:** every detector scored on the same window.
+
 ## Simulated dataset (WNTR)
 
 `data/simulated/` holds a 120-day, 5-zone dataset with 40 leaks, produced by a hydraulic model (WNTR). Evaluate on it with:

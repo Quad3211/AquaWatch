@@ -35,22 +35,32 @@ def proportion_ci(k: int, n: int, confidence: float = 0.95) -> tuple[float, floa
     return float(ci.low), float(ci.high)
 
 
-def alarm_episodes(
-    scored: pd.DataFrame, pred_col: str, *, max_gap_hours: int = 1
-) -> pd.DataFrame:
-    """Group flagged hours into episodes per zone.
+def episode_ids(scored: pd.DataFrame, pred_col: str, *, max_gap_hours: int = 1) -> pd.Series:
+    """Episode number for every flagged row (NaN for unflagged rows).
 
-    Flags no more than ``max_gap_hours`` apart belong to the same episode, so a
-    leak flagged for 10 straight hours counts as one alarm, not ten.
+    Flags in the same zone no more than ``max_gap_hours`` apart share an episode,
+    so a leak flagged for 10 straight hours is one alarm, not ten.
     """
     flagged = scored.loc[scored[pred_col] == 1, ["zone", "timestamp"]].sort_values(
         ["zone", "timestamp"]
     )
+    ids = pd.Series(np.nan, index=scored.index)
     if flagged.empty:
-        return pd.DataFrame(columns=["zone", "start", "end", "hours"])
+        return ids
     gap = flagged.groupby("zone")["timestamp"].diff()
     new_episode = gap.isna() | (gap > pd.Timedelta(hours=max_gap_hours))
-    flagged = flagged.assign(episode=new_episode.cumsum())
+    ids.loc[flagged.index] = new_episode.cumsum().to_numpy()
+    return ids
+
+
+def alarm_episodes(
+    scored: pd.DataFrame, pred_col: str, *, max_gap_hours: int = 1
+) -> pd.DataFrame:
+    """Group flagged hours into episodes per zone: zone, start, end, hours."""
+    ids = episode_ids(scored, pred_col, max_gap_hours=max_gap_hours)
+    flagged = scored.loc[ids.notna(), ["zone", "timestamp"]].assign(episode=ids.dropna())
+    if flagged.empty:
+        return pd.DataFrame(columns=["zone", "start", "end", "hours"])
     return (
         flagged.groupby("episode")
         .agg(zone=("zone", "first"), start=("timestamp", "min"), end=("timestamp", "max"),
