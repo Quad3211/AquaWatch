@@ -92,3 +92,41 @@ def test_day_type_profile_removes_weekend_false_alarms(sim_readings):
     assert new["false_alarms_per_zone_week"] < old["false_alarms_per_zone_week"] / 3
     assert new["episode_precision"] > 0.6
     assert new["events_detected"] >= 15
+
+
+def test_sizing_options_make_big_zones_smoother_and_fix_leak_sizes():
+    """Sizing-study options: customer-based noise shrinks with zone size, and
+    leaks use the absolute sizes given (as a share of each zone's inflow)."""
+    pytest.importorskip("wntr")
+    import numpy as np
+
+    from src.simulate import SimConfig, demand_multipliers, run
+
+    cfg = SimConfig(days=14, liters_per_customer_day=600.0)
+    rng = np.random.default_rng(0)
+    shared = {"zone_day": np.ones(cfg.hours), "zone_hour": np.ones(cfg.hours)}
+    small = demand_multipliers(cfg, rng, customers=10, **shared)
+    big = demand_multipliers(cfg, rng, customers=10_000, **shared)
+    base = demand_multipliers(cfg, rng, customers=1e12, **shared)
+    assert np.std(small / base) > 5 * np.std(big / base)
+
+    sizing = SimConfig(
+        days=12, leaks_per_zone=2, zones=2, zone_mean_inflow_m3h=(10.0, 100.0),
+        zone_elevations_m=(20.0, 20.0), leak_sizes_m3h=(5.0,), liters_per_customer_day=600.0,
+        scale_pipes=True,
+    )
+    _, events = run(sizing)
+    assert (events["target_leak_m3h"] == 5.0).all()
+    shares = events.groupby("zone")["target_fraction_of_inflow"].first().sort_values()
+    assert list(shares.round(2)) == [0.05, 0.5]
+
+
+def test_committed_sizing_results_show_size_effect():
+    """The committed DMA sizing results: 10 m3/h leaks are caught far more often in
+    small zones than big ones, for every detector."""
+    results = pd.read_csv(ROOT / "data" / "simulated" / "sizing" / "dma_sizing_results.csv")
+    ten = results[results["leak_m3h"] == 10.0].assign(rate=lambda d: d["caught_24h"] / d["leaks"])
+    for _method, part in ten.groupby("method"):
+        rates = part.set_index("zone_m3h")["rate"]
+        assert rates[10.0] == 1.0
+        assert rates[200.0] <= 0.5

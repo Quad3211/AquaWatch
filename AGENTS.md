@@ -37,6 +37,7 @@ python -m pytest -q                                      # all tests (about 1 mi
 python -m ruff check .                                   # lint (must pass)
 python scripts/AquaWatch_Evaluate.py --dataset simulated # compare every detector on the 120-day simulation
 python scripts/AquaWatch_Evaluate.py --dataset battledim --profile rolling  # needs fetch + prepare below
+python scripts/dma_sizing_study.py analyse              # DMA sizing study (simulate step needs WNTR, see docs/DMA_SIZING.md)
 python scripts/train_and_save_model.py                   # recreate models/ locally
 python -m streamlit run app.py                           # run the app
 ```

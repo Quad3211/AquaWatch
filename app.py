@@ -169,7 +169,9 @@ stats = event_scores(scored, pred_col)
 test_start, test_end = scored["timestamp"].min(), scored["timestamp"].max()
 test_days = (test_end - test_start).days + 1
 
-tab_overview, tab_alerts, tab_chart, tab_metrics = st.tabs(["Overview", "Alerts", "Chart", "Metrics"])
+tab_overview, tab_alerts, tab_chart, tab_metrics, tab_insights = st.tabs(
+    ["Overview", "Alerts", "Chart", "Metrics", "Insights: DMA size"]
+)
 
 # ---------------------------------------------------------------- overview
 with tab_overview:
@@ -313,3 +315,59 @@ with tab_metrics:
     else:
         st.info("This data has no leak labels, so detectors cannot be scored. Alerts still work.")
     st.warning("Simulated test only; not validated on NWC sensor data.")
+
+# ---------------------------------------------------------------- insights
+with tab_insights:
+    st.subheader("How small must a metered zone (DMA) be?")
+    st.caption(
+        "From scripts/dma_sizing_study.py: zones of 10-200 m³/h simulated side by side, each with leaks "
+        "of 2, 5 and 10 m³/h, over 4 seeds, with the last 60 days held out. Demand noise follows "
+        "customer count (assumed 600 L per customer per day). Independent of the dataset chosen in the "
+        "sidebar."
+    )
+    sizing_csv = config.SIM_DIR / "sizing" / "dma_sizing_results.csv"
+    share_csv = config.SIM_DIR / "sizing" / "dma_sizing_by_leak_share.csv"
+    if not sizing_csv.exists():
+        st.info("Run scripts/dma_sizing_study.py (simulate, then analyse) to create these results.")
+    else:
+        sizing = pd.read_csv(sizing_csv)
+        st.markdown(
+            "**Rule of thumb:** a leak is caught within a day almost every time once it is about "
+            "**20% or more of the zone's average inflow**, and mostly missed below 10%. So to catch a "
+            "leak of *L* m³/h quickly, keep zones to about **5 × L** m³/h. For a 5 m³/h leak that is "
+            "about 25 m³/h, roughly 1,000 customers."
+        )
+        pick = st.selectbox("Detector", list(METHODS), index=list(METHODS).index(detector),
+                            key="insights_detector")
+        part = sizing[sizing["method"] == pick].assign(rate=lambda d: d["caught_24h"] / d["leaks"])
+        grid = part.pivot(index="zone_m3h", columns="leak_m3h", values="rate").sort_index()
+        counts = part.pivot(index="zone_m3h", columns="leak_m3h", values="leaks").sort_index()
+        caught = part.pivot(index="zone_m3h", columns="leak_m3h", values="caught_24h").sort_index()
+        text = caught.astype(int).astype(str) + "/" + counts.astype(int).astype(str)
+        heat = go.Figure(
+            go.Heatmap(
+                z=grid.to_numpy(),
+                x=[f"{c:g} m³/h leak" for c in grid.columns],
+                y=[f"{r:g} m³/h zone" for r in grid.index],
+                text=text.to_numpy(),
+                texttemplate="%{text}",
+                colorscale="Blues",
+                zmin=0,
+                zmax=1,
+                colorbar={"title": "caught<br>within 24 h"},
+            )
+        )
+        heat.update_layout(height=380, margin={"l": 10, "r": 10, "t": 10, "b": 10})
+        st.plotly_chart(heat, width="stretch")
+        fa = part.groupby("zone_m3h")["false_alarms_per_week"].first()
+        st.caption(
+            "Cells show leaks caught within 24 h out of leaks tested. False alarms per zone-week for "
+            f"{pick}: " + ", ".join(f"{z:g} m³/h: {v:.2f}" for z, v in fa.items()) + "."
+        )
+        if share_csv.exists():
+            st.markdown("**All detectors, by leak size as a share of zone inflow** (caught within 24 h)")
+            st.dataframe(pd.read_csv(share_csv), hide_index=True, width="stretch")
+        st.warning(
+            "Simulated network, not calibrated to NWC. Small samples per cell (4-12 leaks). "
+            "Use this to plan DMA sizes for a pilot, then confirm on real data."
+        )
