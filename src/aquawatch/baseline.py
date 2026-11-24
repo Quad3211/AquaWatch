@@ -23,7 +23,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-import config
+from aquawatch import config
 
 FLOW_THRESHOLD = config.FLOW_RULE_THRESHOLD
 MAD_TO_SD = 1.4826  # scales a median absolute deviation to a standard deviation

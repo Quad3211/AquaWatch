@@ -94,7 +94,7 @@ def build_event_alerts(
     labels, ``matches_injected_leak`` says whether the alarm overlapped a real
     (injected) leak; real utility data would fill this from field checks.
     """
-    from src.metrics import episode_ids, true_events
+    from aquawatch.metrics import episode_ids, true_events
 
     ids = episode_ids(scored, prediction_col, max_gap_hours=max_gap_hours)
     flagged = scored.loc[ids.notna()].assign(episode=ids.dropna())

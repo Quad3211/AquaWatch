@@ -14,13 +14,13 @@ The Cursor CLI agent can work on this repo from the terminal. It follows the sam
 ## Running it
 PowerShell:
 ```powershell
-.\scripts\cursor_agent.ps1 -p --mode ask "Explain how src/metrics.py scores alarm episodes"
-.\scripts\cursor_agent.ps1 -p "Add a unit test for src/schema.py::find_gaps"
+.\scripts\cursor_agent.ps1 -p --mode ask "Explain how src/aquawatch/metrics.py scores alarm episodes"
+.\scripts\cursor_agent.ps1 -p "Add a unit test for src/aquawatch/schema.py::find_gaps"
 .\scripts\cursor_agent.ps1                 # interactive session
 ```
 Git Bash or macOS/Linux:
 ```bash
-scripts/cursor_agent.sh -p --mode ask "Explain how src/metrics.py scores alarm episodes"
+scripts/cursor_agent.sh -p --mode ask "Explain how src/aquawatch/metrics.py scores alarm episodes"
 ```
 The wrapper reads the key from `.env`, gives it to the agent for that run only, and never prints it. `-p` runs once without asking questions (headless). `--mode ask` answers questions without editing anything.
 

@@ -6,14 +6,14 @@ from __future__ import annotations
 
 import pandas as pd
 
-from src.baseline import (
+from aquawatch.baseline import (
     predict_cusum,
     predict_flow_pressure_rule,
     predict_night_flow,
     predict_rule,
 )
-from src.metrics import METHODS  # noqa: F401  (re-exported for callers)
-from src.model import (
+from aquawatch.metrics import METHODS  # noqa: F401  (re-exported for callers)
+from aquawatch.model import (
     add_deviations,
     add_rolling_deviations,
     fit_detector,

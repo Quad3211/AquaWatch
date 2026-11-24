@@ -14,10 +14,10 @@ import plotly.graph_objects as go
 import streamlit as st
 from plotly.subplots import make_subplots
 
-import config
-from src.alerts import build_alert_table, build_event_alerts
-from src.data_loader import chronological_split, load_sensor_csv
-from src.metrics import (
+from aquawatch import config
+from aquawatch.alerts import build_alert_table, build_event_alerts
+from aquawatch.data_loader import chronological_split, load_sensor_csv
+from aquawatch.metrics import (
     METHODS,
     compare_methods,
     detection_by_leak_size,
@@ -25,9 +25,9 @@ from src.metrics import (
     format_comparison,
     true_events,
 )
-from src.model import add_deviations, load_model_artifacts, predict_isolation_forest
-from src.pipeline import score_all_methods
-from src.schema import find_gaps
+from aquawatch.model import add_deviations, load_model_artifacts, predict_isolation_forest
+from aquawatch.pipeline import score_all_methods
+from aquawatch.schema import find_gaps
 
 UPLOAD = "Upload a CSV"
 DATASETS = {

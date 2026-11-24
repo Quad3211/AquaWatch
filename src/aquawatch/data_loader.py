@@ -9,8 +9,8 @@ from typing import IO
 
 import pandas as pd
 
-import config
-from src.schema import validate_sensor_frame
+from aquawatch import config
+from aquawatch.schema import validate_sensor_frame
 
 REQUIRED_COLUMNS = {
     "timestamp",

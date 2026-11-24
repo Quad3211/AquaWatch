@@ -8,7 +8,8 @@ from __future__ import annotations
 from pathlib import Path
 
 # Paths
-PROJECT_ROOT = Path(__file__).resolve().parent
+# src/aquawatch/config.py -> the repository root (data/, models/ and docs/ live there).
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = PROJECT_ROOT / "data"
 DATA_RAW_DIR = DATA_DIR / "raw"
 DATA_DEMO_DIR = DATA_DIR / "demo"

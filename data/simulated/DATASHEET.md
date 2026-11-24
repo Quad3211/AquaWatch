@@ -1,7 +1,7 @@
 # Datasheet: AquaWatch WNTR-simulated dataset
 
 **Files:** `aquawatch_wntr_readings.csv` (readings) and `aquawatch_wntr_events.csv` (one row per leak)
-**Generator:** `src/simulate.py`, run by `scripts/simulate_network.py`
+**Generator:** `src/aquawatch/simulate.py`, run by `scripts/simulate_network.py`
 **Status:** synthetic research data. It is not NWC data, not calibrated to any real Jamaican network, and not endorsed by any organisation.
 
 ## Why it exists

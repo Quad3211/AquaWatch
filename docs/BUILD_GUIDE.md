@@ -33,7 +33,7 @@ Every step lists **why**, **what to do**, **where**, and **done when**. Do the s
 |---|---|---|
 | Layout | `src/` modules, `config.py` at root, `sys.path` hacks in 9 scripts and tests | Not an installable package; imports depend on where you run from |
 | Config | Module-level constants in `config.py` | Not typed, not per-environment, not recorded with results |
-| Detectors | 5 functions with different signatures (`src/baseline.py`, `src/model.py`), wired by hand in `src/pipeline.py` | No shared interface; adding a detector means editing several files |
+| Detectors | 5 functions with different signatures (`src/aquawatch/baseline.py`, `src/aquawatch/model.py`), wired by hand in `src/aquawatch/pipeline.py` | No shared interface; adding a detector means editing several files |
 | Evaluation | Event-level metrics, matched random baseline, one chronological split | No walk-forward; thresholds fixed by hand, never validated |
 | Data | CSVs loaded in full, then pandera checks | No storage, no incremental loads, no data-quality history |
 | App | Streamlit trains and scores on every run | The UI does the computing; nothing is shared or persisted |
@@ -140,7 +140,7 @@ tests/  docs/  scripts/ (thin wrappers only)
   - `RunInfo` (run id, data range, config fingerprint, model version, git SHA)
 
   Keep the hourly readings table as a validated DataFrame (pandera schema), and convert to types only at the boundaries.
-- **Done when:** `src/alerts.py` and `src/metrics.py` take and return these types for incidents and events.
+- **Done when:** `src/aquawatch/alerts.py` and `src/aquawatch/metrics.py` take and return these types for incidents and events.
 
 ### A5. One detector interface and a registry *(refactor)*
 - **Why:** each of today's 5 detectors has a different function signature. With one interface, adding a detector touches one file, and the pipeline, evaluation, app and API all pick it up.

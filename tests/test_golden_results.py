@@ -7,19 +7,16 @@ is *meant* to move results (a new feature, a new threshold), re-run with
 from __future__ import annotations
 
 import json
-import sys
 from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+from aquawatch import config
+from aquawatch.data_loader import chronological_split, load_sensor_csv
+from aquawatch.metrics import compare_methods
+from aquawatch.pipeline import score_all_methods
 
-import config
-from src.data_loader import chronological_split, load_sensor_csv
-from src.metrics import compare_methods
-from src.pipeline import score_all_methods
+ROOT = Path(__file__).resolve().parents[1]
 
 GOLDEN = Path(__file__).parent / "golden" / "event_results.json"
 FIELDS = ["events_total", "events_detected", "alarm_episodes", "false_episodes", "repeat_episodes"]

@@ -4,22 +4,19 @@ Owner: Nicholas Smalling
 """
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pytest
 
-ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+from aquawatch import config
+from aquawatch.baseline import predict_cusum, predict_flow_pressure_rule, predict_night_flow
+from aquawatch.data_loader import chronological_split, load_sensor_csv
+from aquawatch.metrics import RANDOM_NAME, compare_methods
+from aquawatch.pipeline import score_all_methods
 
-import config
-from src.baseline import predict_cusum, predict_flow_pressure_rule, predict_night_flow
-from src.data_loader import chronological_split, load_sensor_csv
-from src.metrics import RANDOM_NAME, compare_methods
-from src.pipeline import score_all_methods
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def _hourly(days: int, start: str = "2026-01-05", zone: str = "Zone 01") -> pd.DataFrame:

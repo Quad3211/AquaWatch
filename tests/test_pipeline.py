@@ -4,29 +4,25 @@ Owner: Nicholas Smalling
 """
 from __future__ import annotations
 
-import sys
 from io import BytesIO
 from pathlib import Path
 
+import pandas as pd
 import pytest
 
-ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
-
-import pandas as pd
-
-from src.alerts import build_alert_table
-from src.baseline import predict_rule
-from src.data_loader import chronological_split, load_sensor_csv
-from src.metrics import RANDOM_NAME, alarm_episodes, compare_methods, proportion_ci
-from src.model import (
+from aquawatch.alerts import build_alert_table
+from aquawatch.baseline import predict_rule
+from aquawatch.data_loader import chronological_split, load_sensor_csv
+from aquawatch.metrics import RANDOM_NAME, alarm_episodes, compare_methods, proportion_ci
+from aquawatch.model import (
     add_deviations,
     fit_detector,
     load_model_artifacts,
     predict_isolation_forest,
     run_detection,
 )
+
+ROOT = Path(__file__).resolve().parents[1]
 
 LABEL_COLS = ["simulated_leak_label", "simulated_event_id"]
 
@@ -94,7 +90,7 @@ def test_proportion_ci_is_wide_for_small_samples():
 
 def test_saved_model_round_trip(split, tmp_path):
     """skops save/load gives identical predictions and refuses untrusted types."""
-    from src.model import save_model_artifacts
+    from aquawatch.model import save_model_artifacts
 
     train, test = split
     model, profile = fit_detector(train)
@@ -172,8 +168,8 @@ def test_split_explains_out_of_range_dates():
 
 
 def test_event_alerts_one_row_per_episode(scored):
-    from src.alerts import build_event_alerts
-    from src.metrics import alarm_episodes
+    from aquawatch.alerts import build_event_alerts
+    from aquawatch.metrics import alarm_episodes
 
     events = build_event_alerts(scored, prediction_col="ai_pred", flow_unit="units/h")
     assert len(events) == len(alarm_episodes(scored, "ai_pred"))
@@ -186,7 +182,7 @@ def test_event_alerts_one_row_per_episode(scored):
 
 
 def test_merging_alarms_gives_fewer_incidents(scored):
-    from src.alerts import build_event_alerts
+    from aquawatch.alerts import build_event_alerts
 
     raw = build_event_alerts(scored, prediction_col="ai_pred", max_gap_hours=1)
     merged = build_event_alerts(scored, prediction_col="ai_pred", max_gap_hours=12)
@@ -196,7 +192,7 @@ def test_merging_alarms_gives_fewer_incidents(scored):
 def test_app_runs_for_every_dataset_and_detector():
     from streamlit.testing.v1 import AppTest
 
-    from src.metrics import METHODS
+    from aquawatch.metrics import METHODS
 
     at = AppTest.from_file(str(ROOT / "app.py"), default_timeout=300).run()
     for dataset in at.sidebar.radio[0].options[:2]:  # the two built-in datasets

@@ -1,5 +1,5 @@
 ---
-globs: app.py, src/alerts.py
+globs: app.py, src/aquawatch/alerts.py
 alwaysApply: false
 ---
 

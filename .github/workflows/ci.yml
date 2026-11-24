@@ -36,8 +36,9 @@ jobs:
 
       - name: Train and evaluate end to end
         run: |
-          uv run python scripts/train_and_save_model.py
-          uv run python scripts/AquaWatch_Evaluate.py
+          uv run aquawatch train
+          uv run aquawatch evaluate --dataset demo
+          uv run aquawatch evaluate --dataset simulated
 
       - name: Audit dependencies for known vulnerabilities
         run: uv run pip-audit

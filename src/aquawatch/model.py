@@ -16,7 +16,7 @@ import skops
 import skops.io as sio
 from sklearn.ensemble import IsolationForest
 
-import config
+from aquawatch import config
 
 FEATURE_COLS = ["flow_rel_dev", "pressure_dev"]
 

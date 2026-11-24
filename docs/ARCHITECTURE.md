@@ -13,21 +13,21 @@ CSV readings → compare each zone/hour to its own normal → rule + Isolation F
 data/*.csv
     │
     ▼
-src/data_loader.py      load, validate, chronological split
+src/aquawatch/data_loader.py      load, validate, chronological split
     │
     ▼
-src/model.py            zone/hour profile + deviation features
+src/aquawatch/model.py            zone/hour profile + deviation features
     │
-    ├──────────────► src/baseline.py     25% flow rule
+    ├──────────────► src/aquawatch/baseline.py     25% flow rule
     │
     └──────────────► Isolation Forest    unusual combinations
                         │
                         ▼
-                   src/alerts.py         reason + next step
+                   src/aquawatch/alerts.py         reason + next step
                         │
           ┌─────────────┴─────────────┐
           ▼                           ▼
-     app.py (UI)              src/metrics.py
+     app.py (UI)              src/aquawatch/metrics.py
                               scripts/AquaWatch_Evaluate.py
 ```
 
