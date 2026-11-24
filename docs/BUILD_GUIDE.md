@@ -9,6 +9,14 @@ This guide is for building AquaWatch out yourself, one step at a time. It starts
 
 Every step lists **why**, **what to do**, **where**, and **done when**. Do the steps in order: each one leaves the repo working and tested, and later steps rely on earlier ones.
 
+## Progress
+
+| Phase | Status | Notes |
+|---|---|---|
+| A: Foundation | **Done** (branch `phase-a/foundation`) | Done in the order A2, A1, A3, A4, A5, A6, so the golden test existed before the first refactor. A1: `app.py` stays at the repo root; there is no `apps/` folder yet. A3: settings use the standard library (TOML + dataclasses) instead of `pydantic-settings` ([ADR 0001](adr/0001-settings-format.md)). A5: detectors live in one module, `src/aquawatch/detectors.py`, not a `detection/detectors/` package. |
+| B: Detection quality | Next | B1 walk-forward evaluation can tune thresholds on each detector's `score()`. |
+| C–E | Not started | |
+
 ---
 
 ## 0. How to work through this
