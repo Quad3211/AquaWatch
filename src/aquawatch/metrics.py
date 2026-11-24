@@ -23,6 +23,8 @@ import pandas as pd
 from scipy.stats import binomtest
 from sklearn.metrics import precision_score, recall_score
 
+from aquawatch.domain import as_event_frame
+
 HOURS_PER_WEEK = 168
 RANDOM_BASELINE_SEED = 2026
 
@@ -95,6 +97,7 @@ def _scoring_events(scored: pd.DataFrame, events: pd.DataFrame | None) -> tuple[
     inside the scored window are scored; leaks that began earlier still count as
     active, so alarms they cause are not called false.
     """
+    events = as_event_frame(events)
     if events is None:
         found = true_events(scored)
         return found, found

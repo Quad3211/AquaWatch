@@ -14,6 +14,7 @@ import pandas as pd
 
 from aquawatch import config
 from aquawatch.data_loader import chronological_split, load_sensor_csv
+from aquawatch.domain import RunInfo
 from aquawatch.metrics import (
     METHODS,
     compare_methods,
@@ -62,8 +63,9 @@ def evaluate(
     truth = events if events_are_truth else None
     table = format_comparison(compare_methods(scored, events=truth, detect_within_hours=detect_within))
 
-    print(f"Dataset: {dataset} ({path.name}) | expected-flow profile: {profile} | "
-          f"settings fingerprint: {settings.fingerprint()}")
+    run = RunInfo.create(dataset, test["timestamp"].min(), test["timestamp"].max(), settings.fingerprint())
+    print(f"Run {run.run_id} | dataset: {dataset} ({path.name}) | expected-flow profile: {profile}")
+    print(f"Settings fingerprint: {run.settings_fingerprint} | code version: {run.code_version}")
     print(f"Rows: {len(df):,} | training window: {len(train):,} rows | held out from {cutoff}: {len(test):,}")
     if events_are_truth:
         new = events[(events["start"] >= scored["timestamp"].min())]
