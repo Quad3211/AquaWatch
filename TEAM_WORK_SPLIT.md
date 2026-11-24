@@ -103,7 +103,7 @@ Add only what is needed:
 **Week of 23–27 Nov**
 - [ ] Deliver `detect`-style API Jason can call from Streamlit
 - [ ] Help `src/alerts.py` explanations (flow/pressure language)
-- [ ] Confirm held-out metrics still match pitch (~91.7% / 75.9%)
+- [ ] Confirm held-out event-level metrics match `data/AquaWatch_Data_Notes.md` (`python scripts/AquaWatch_Evaluate.py`)
 
 **Week of 30 Nov–4 Dec**
 - [ ] Freeze model settings (`random_state`, contamination)

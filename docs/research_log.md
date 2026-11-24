@@ -66,7 +66,7 @@ Full source register: [AquaWatch_Research_and_Sources.md](AquaWatch_Research_and
 |---|---|---|---|
 | Technique + why | Isolation Forest on zone/hour flow & pressure deviations | Nickel | Write plain-English note |
 | Baseline | Flow >25% above zone/hour expected | Nicholas | Done in code |
-| Metric | Precision & recall on injected held-out anomalies | Nicholas | Done (~91.7% / 75.9% AI) |
+| Metric | Precision & recall on injected held-out anomalies | Nicholas | Replaced in Phase 0 by event-level metrics with 95% CIs (see data notes) |
 | Limits | Alert ≠ leak; synthetic ≠ field proof | Nickel + Nathanael | Expand |
 
 **Plain-English model blurb (Nickel):**

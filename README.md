@@ -33,11 +33,30 @@ python -m streamlit run app.py
 
 If `streamlit` is not recognized in PowerShell, always use `python -m streamlit` (the Scripts folder may not be on PATH).
 
+`train_and_save_model.py` writes `models/isolation_forest.skops` plus `model_metadata.json`. Model files are generated, not committed (pickle/joblib files can run code when loaded). If they are missing, the app trains in-session instead.
+
 Optional checks:
 
 ```bash
-python -m pytest tests/test_pipeline.py -v
+python -m pytest -v
 ```
+
+## Development (uv, lint, CI)
+
+`pyproject.toml` + `uv.lock` pin exact, reproducible versions. With [uv](https://docs.astral.sh/uv/) installed:
+
+```bash
+uv sync                      # create .venv with locked versions
+uv run pytest -v             # tests, including an app smoke test
+uv run ruff check .          # lint
+uv run pre-commit install    # optional: lint + large-file check before each commit
+```
+
+If you change dependencies, edit both `pyproject.toml` and `requirements.txt`, then run `uv lock`. GitHub Actions (`.github/workflows/ci.yml`) runs lock check, lint, tests, train + evaluate and `pip-audit` on every pull request. Dependabot opens weekly dependency PRs.
+
+## How results are measured
+
+Training never uses the leak labels. Results are scored **per leak event** (events caught, real vs false alarm episodes, false alarms per zone-week, time to detect) with exact 95% confidence intervals and a random-alarm baseline. See [data/AquaWatch_Data_Notes.md](data/AquaWatch_Data_Notes.md) for the current table and [reports/AquaWatch industry readiness.md](reports/AquaWatch%20industry%20readiness.md) for the roadmap.
 
 ## Project structure
 
@@ -54,6 +73,7 @@ AquaWatch/
     raw/  demo/               # Guide §14.2 layout stubs
   models/                     # Saved Isolation Forest + profile
   src/
+    schema.py                 # Data contract (pandera), checked on every load
     data_loader.py            # Nicholas
     baseline.py               # Nicholas
     model.py                  # Nickel

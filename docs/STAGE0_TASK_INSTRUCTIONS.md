@@ -106,7 +106,7 @@ python scripts/train_and_save_model.py
 python scripts/AquaWatch_Evaluate.py
 ```
 
-and tell Nathanael if the numbers change a lot from ~91.7% precision / 75.9% recall.
+and tell Nathanael if the event-level table changes (see `data/AquaWatch_Data_Notes.md` for the current numbers).
 
 **Done when:** Section 5 has the blurb, 4 failure modes, and 3 AquaWatch bullets.
 
@@ -127,8 +127,8 @@ and tell Nathanael if the numbers change a lot from ~91.7% precision / 75.9% rec
    - **False alert harm:** crews waste time; people stop trusting the tool  
    - **Missed anomaly harm:** unusual pattern not flagged; investigation delayed  
 3. Connect to our synthetic metrics in plain words:
-   - Precision ~91.7% means most alerts matched injected anomalies in the test  
-   - Recall: rule ~37.9% vs AI ~75.9% means AI caught more injected anomalies in this test  
+   - Both the rule and the AI caught all 3 held-out test events, far better than random alarms  
+   - The AI raised more separate false alarms (about 2 per zone per week vs 0.7 for the rule); with only 3 events we cannot claim either is better  
 4. Write 2 mitigation sentences:
    - Humans must verify every alert  
    - We never claim confirmed leaks from the model alone  
