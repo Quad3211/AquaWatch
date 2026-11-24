@@ -1,48 +1,39 @@
 """One scoring path for every detector, so all are compared on equal terms.
 
 Owner: Nickel Small / Nicholas Smalling
+
+Builds the deviation features once (static or rolling expected-flow profile),
+then fits and runs every detector in ``aquawatch.detectors.REGISTRY``.
 """
 from __future__ import annotations
 
 import pandas as pd
 
-from aquawatch.baseline import (
-    predict_cusum,
-    predict_flow_pressure_rule,
-    predict_night_flow,
-    predict_rule,
-)
-from aquawatch.metrics import METHODS  # noqa: F401  (re-exported for callers)
-from aquawatch.model import (
-    add_deviations,
-    add_rolling_deviations,
-    fit_detector,
-    predict_isolation_forest,
-    select_typical_rows,
-    train_isolation_forest,
-)
-from aquawatch.settings import (
-    PROFILE_CHOICES,  # noqa: E402,F401  (re-exported)
-    get_settings,
-)
+from aquawatch.detectors import METHODS, build_detectors  # noqa: F401  (METHODS re-exported)
+from aquawatch.model import add_deviations, add_rolling_deviations, build_zone_hour_profile
+from aquawatch.settings import PROFILE_CHOICES, get_settings  # noqa: F401  (re-exported)
+
+
+def build_features(
+    train: pd.DataFrame, test: pd.DataFrame, profile_by: str | None = None
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Deviation features (expected flow/pressure and deviations) for train and test rows."""
+    profile_by = profile_by or get_settings().profile.by
+    if profile_by == "rolling":
+        # Baseline = median of the previous weeks, updated as time moves on.
+        return add_rolling_deviations(train, test)
+    profile = build_zone_hour_profile(train, by=profile_by)
+    return add_deviations(train, profile), add_deviations(test, profile)
 
 
 def score_all_methods(
     train: pd.DataFrame, test: pd.DataFrame, profile_by: str | None = None
 ) -> pd.DataFrame:
-    """Fit on the training window (no labels) and add every method's alarms to the test rows."""
-    profile_by = profile_by or get_settings().profile.by
-    if profile_by == "rolling":
-        # Baseline = median of the previous weeks, updated as time moves on.
-        train_features, scored = add_rolling_deviations(train, test)
-        model = train_isolation_forest(select_typical_rows(train_features))
-    else:
-        model, profile = fit_detector(train, profile_by=profile_by)
-        train_features = add_deviations(train, profile)
-        scored = add_deviations(test, profile)
-    scored["rule_pred"] = predict_rule(scored)
-    scored["fp_rule_pred"] = predict_flow_pressure_rule(train_features, scored)
-    scored["mnf_pred"] = predict_night_flow(train, scored)
-    scored["cusum_pred"] = predict_cusum(train_features, scored)
-    scored["ai_pred"] = predict_isolation_forest(model, scored)
+    """Fit every registered detector on the training window (no labels) and add its
+    alarms (``<column>``) and scores (``<column>_score``) to the test rows."""
+    train_features, scored = build_features(train, test, profile_by)
+    for detector in build_detectors():
+        detector.fit(train_features)
+        scored[f"{detector.column}_score"] = detector.score(scored)
+        scored[detector.column] = detector.alarms(scored)
     return scored

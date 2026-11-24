@@ -111,8 +111,10 @@ AquaWatch/
     settings.py               # Loads and validates configs/default.toml (+ AQUAWATCH__* overrides)
     schema.py, data_loader.py # Data contract (pandera) and loading
     model.py                  # Expected-flow profiles, label-free training filter, Isolation Forest
-    baseline.py               # Flow rule, flow + pressure rule, night flow, CUSUM
-    pipeline.py               # One scoring path for every detector
+    baseline.py               # Flow rule, flow + pressure rule, night flow, CUSUM (score functions)
+    detectors.py              # Detector interface (fit / score / alarms) + REGISTRY
+    domain.py                 # LeakEvent, Alarm, Incident, RunInfo
+    pipeline.py               # Builds features, runs every registered detector
     metrics.py, report.py     # Event-level scoring and the evaluation report
     alerts.py                 # Incident table for the app
     simulate.py, sizing.py    # WNTR simulator and DMA sizing study

@@ -23,6 +23,7 @@ import pandas as pd
 from scipy.stats import binomtest
 from sklearn.metrics import precision_score, recall_score
 
+from aquawatch.detectors import METHODS  # display name -> prediction column
 from aquawatch.domain import as_event_frame
 
 HOURS_PER_WEEK = 168
@@ -289,14 +290,6 @@ def random_alarms(scored: pd.DataFrame, like_col: str, seed: int = RANDOM_BASELI
     return out
 
 
-# Display name -> prediction column, in the order tables show them.
-METHODS = {
-    "Simple flow rule": "rule_pred",
-    "Flow + pressure rule": "fp_rule_pred",
-    "Night flow (MNF)": "mnf_pred",
-    "CUSUM on flow": "cusum_pred",
-    "Isolation Forest": "ai_pred",
-}
 
 
 def compare_methods(

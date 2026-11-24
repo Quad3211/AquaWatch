@@ -55,7 +55,10 @@ If a change is *meant* to move results, update the snapshot with
 |---|---|
 | `src/aquawatch/data_loader.py`, `src/aquawatch/schema.py` | Load CSVs and validate them against a pandera schema |
 | `src/aquawatch/model.py` | Expected-flow profile (zone × weekday/weekend × hour), label-free training filter, Isolation Forest, skops save/load |
-| `src/aquawatch/baseline.py` | Flow rule, flow + pressure rule, night flow (MNF), CUSUM |
+| `src/aquawatch/baseline.py` | Flow rule, flow + pressure rule, night flow (MNF), CUSUM (score functions) |
+| `src/aquawatch/detectors.py` | The `Detector` interface (`fit` / `score` / `alarms`) and the `REGISTRY` every part reads |
+| `src/aquawatch/domain.py` | Shared types: `LeakEvent`, `Alarm`, `Incident`, `RunInfo` |
+| `src/aquawatch/settings.py`, `configs/default.toml` | Typed, validated settings and their fingerprint |
 | `src/aquawatch/pipeline.py` | One scoring path for every detector |
 | `src/aquawatch/metrics.py` | Event-level scoring, confidence intervals, random baseline |
 | `src/aquawatch/alerts.py` | Incident table shown in the app |

@@ -70,7 +70,7 @@ def predict_flow_pressure_rule(
     return ((zf >= flow_z) & (zp <= -pressure_z)).astype(int)
 
 
-def predict_night_flow(
+def night_flow_scores(
     history: pd.DataFrame,
     frame: pd.DataFrame,
     *,
@@ -79,48 +79,56 @@ def predict_night_flow(
     k_mad: float | None = None,
     min_rise: float | None = None,
 ) -> pd.Series:
-    """Minimum night flow check.
+    """Minimum night flow score for each row (0 outside the night window).
 
     For each zone and night, the mean inflow over ``night_hours`` is compared
     with the median of the previous ``lookback_nights`` nights (only the past is
-    used). A night is flagged if it is above that median by more than both
-    ``k_mad`` robust SDs and ``min_rise`` (a fraction). The night-hour readings
-    of a flagged night become alarms. ``history`` is earlier data (the training
-    window) so the first test nights have a baseline.
+    used). The score is the night's rise above that median divided by the
+    allowed margin, ``max(k_mad robust SDs, min_rise x median)``, so a score
+    above 1 means the night breaks both limits. ``history`` is earlier data (the
+    training window) so the first test nights have a baseline.
     """
-    night_hours = night_hours or get_settings().night_flow.hours
-    lookback = lookback_nights or get_settings().night_flow.lookback_nights
-    k_mad = get_settings().night_flow.k_mad if k_mad is None else k_mad
-    min_rise = get_settings().night_flow.min_rise if min_rise is None else min_rise
+    cfg = get_settings().night_flow
+    night_hours = night_hours or cfg.hours
+    lookback = lookback_nights or cfg.lookback_nights
+    k_mad = cfg.k_mad if k_mad is None else k_mad
+    min_rise = cfg.min_rise if min_rise is None else min_rise
 
     both = pd.concat([history, frame], ignore_index=True).drop_duplicates(["zone", "timestamp"])
     night = both[both["timestamp"].dt.hour.isin(night_hours)].copy()
     night["night"] = night["timestamp"].dt.normalize()
     nightly = night.groupby(["zone", "night"])["flow_index"].mean().rename("mnf").reset_index()
 
-    flagged_nights = []
+    scored_nights = []
     for _zone, group in nightly.groupby("zone"):
         past = group["mnf"].shift(1).rolling(lookback, min_periods=max(3, lookback // 2))
         median = past.median()
         mad = past.apply(lambda x: np.median(np.abs(x - np.median(x))), raw=True)
-        threshold = median + np.maximum(k_mad * MAD_TO_SD * mad, min_rise * median)
-        flagged_nights.append(group.loc[group["mnf"] > threshold, ["zone", "night"]])
-    flagged = pd.concat(flagged_nights) if flagged_nights else pd.DataFrame(columns=["zone", "night"])
+        margin = np.maximum(k_mad * MAD_TO_SD * mad, min_rise * median)
+        scored_nights.append(group.assign(score=(group["mnf"] - median) / margin)[["zone", "night", "score"]])
+    nights = pd.concat(scored_nights) if scored_nights else pd.DataFrame(columns=["zone", "night", "score"])
 
     key = frame["zone"].astype(str) + "|" + frame["timestamp"].dt.normalize().astype(str)
-    flagged_keys = set(flagged["zone"].astype(str) + "|" + flagged["night"].astype(str))
+    night_keys = nights["zone"].astype(str) + "|" + nights["night"].astype(str)
+    lookup = dict(zip(night_keys, nights["score"], strict=True))
+    scores = key.map(lookup).astype(float)
     is_night = frame["timestamp"].dt.hour.isin(night_hours)
-    return (key.isin(flagged_keys) & is_night).astype(int)
+    return scores.where(is_night, 0.0).fillna(0.0)
 
 
-def predict_cusum(
+def predict_night_flow(history: pd.DataFrame, frame: pd.DataFrame, **kwargs) -> pd.Series:
+    """Night-hour readings of nights whose score is above 1 (see ``night_flow_scores``)."""
+    return (night_flow_scores(history, frame, **kwargs) > 1).astype(int)
+
+
+def cusum_statistic(
     train_features: pd.DataFrame,
     frame: pd.DataFrame,
     *,
     k: float | None = None,
     h: float | None = None,
 ) -> pd.Series:
-    """One-sided (upward) CUSUM on the flow deviation, per zone.
+    """One-sided (upward) CUSUM statistic on the flow deviation, per zone.
 
     The flow deviation is turned into robust z-scores using the training window.
     ``S = max(0, S + z - k)`` builds up while flow stays above normal; an alarm
@@ -137,13 +145,20 @@ def predict_cusum(
     both = both.reset_index(names="_orig_index").sort_values(["zone", "timestamp"])
     both["_z"] = _robust_z(both, scales, "flow_rel_dev").to_numpy()
 
-    alarms = np.zeros(len(both), dtype=int)
+    stat = np.zeros(len(both), dtype=float)
     positions = {idx: pos for pos, idx in enumerate(both.index)}
     for _zone, group in both.groupby("zone", sort=False):
         s = 0.0
         for idx, z in zip(group.index, group["_z"].to_numpy(), strict=True):
             s = min(max(0.0, s + z - k), 2 * h)
-            alarms[positions[idx]] = int(s > h)
-    both["_alarm"] = alarms
+            stat[positions[idx]] = s
+    both["_stat"] = stat
     test_part = both[both["_test"]].set_index("_orig_index")
-    return test_part["_alarm"].reindex(frame.index).fillna(0).astype(int)
+    return test_part["_stat"].reindex(frame.index).fillna(0.0)
+
+
+def predict_cusum(train_features: pd.DataFrame, frame: pd.DataFrame, **kwargs) -> pd.Series:
+    """Alarm while the CUSUM statistic is above ``h``."""
+    h = kwargs.get("h")
+    h = get_settings().cusum.h if h is None else h
+    return (cusum_statistic(train_features, frame, **kwargs) > h).astype(int)
