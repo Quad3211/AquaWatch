@@ -98,3 +98,34 @@ def test_sizing_analyse_end_to_end_on_small_input(monkeypatch, tmp_path, capsys)
     assert set(results["zone_m3h"]) == set(sizing.ZONE_SIZES_M3H)
     assert (results["caught_24h"] <= results["leaks"]).all()
     assert "share of zone inflow" in capsys.readouterr().out
+
+
+def test_bad_cutoff_date_gives_a_clear_error(capsys):
+    with pytest.raises(SystemExit) as exc:
+        main(["evaluate", "--cutoff", "notadate"])
+    assert exc.value.code == 2
+    assert "not a date; use YYYY-MM-DD" in capsys.readouterr().err
+
+
+def test_cutoff_outside_the_data_gives_a_clear_error(capsys):
+    assert main(["evaluate", "--dataset", "demo", "--cutoff", "2030-01-01"]) == 2
+    err = capsys.readouterr().err
+    assert err.startswith("aquawatch evaluate: error:") and "Traceback" not in err
+
+
+def test_settings_typo_gives_a_clear_error(monkeypatch, capsys):
+    from aquawatch.settings import get_settings
+
+    monkeypatch.setenv("AQUAWATCH__CUSUM__TYPO", "1")
+    get_settings.cache_clear()
+    try:
+        assert main(["config"]) == 2
+        assert "Unknown setting(s) in [cusum]" in capsys.readouterr().err
+    finally:
+        monkeypatch.delenv("AQUAWATCH__CUSUM__TYPO")
+        get_settings.cache_clear()
+
+
+def test_detect_within_applies_to_every_dataset(capsys):
+    assert main(["evaluate", "--dataset", "simulated", "--detect-within", "24"]) == 0
+    assert "within 24 h of its start" in capsys.readouterr().out

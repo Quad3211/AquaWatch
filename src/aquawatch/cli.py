@@ -13,8 +13,20 @@ commands that need optional packages (WNTR) only fail when actually used.
 from __future__ import annotations
 
 import argparse
+import datetime as dt
+import sys
 import time
 from pathlib import Path
+
+
+def _iso_date(value: str) -> str:
+    """argparse type: a YYYY-MM-DD date (rejected with a clear message otherwise)."""
+    try:
+        dt.date.fromisoformat(value)
+    except ValueError:
+        message = f"{value!r} is not a date; use YYYY-MM-DD, e.g. 2026-07-31"
+        raise argparse.ArgumentTypeError(message) from None
+    return value
 
 
 def _evaluate(args: argparse.Namespace) -> int:
@@ -94,7 +106,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     ev = sub.add_parser("evaluate", help="Compare every detector on a dataset (event-level).")
     ev.add_argument("--dataset", choices=["demo", "simulated", "battledim"], default="demo")
-    ev.add_argument("--cutoff", help="Override the train/test cutoff date (YYYY-MM-DD).")
+    ev.add_argument("--cutoff", type=_iso_date, help="Override the train/test cutoff date (YYYY-MM-DD).")
     ev.add_argument(
         "--profile",
         choices=["hour", "day_type", "hour_of_week", "rolling"],
@@ -104,7 +116,8 @@ def build_parser() -> argparse.ArgumentParser:
     ev.add_argument(
         "--detect-within",
         type=float,
-        help="Hours after a leak starts in which an alarm must begin to count (BattLeDIM only).",
+        help="Count a leak as caught only if an alarm starts within this many hours of it "
+        "(default: no limit, or [datasets.<name>] detect_within_hours).",
     )
     ev.set_defaults(func=_evaluate)
 
@@ -131,8 +144,15 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    from aquawatch.settings import SettingsError
+
     args = build_parser().parse_args(argv)
-    return int(args.func(args) or 0)
+    try:
+        return int(args.func(args) or 0)
+    except (SettingsError, ValueError, FileNotFoundError) as exc:
+        # Expected problems with the user's input or files: one clear line, no traceback.
+        print(f"aquawatch {args.command}: error: {exc}", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":

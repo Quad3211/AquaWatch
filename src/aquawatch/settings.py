@@ -101,6 +101,14 @@ class CusumSettings:
 
 
 @dataclass(frozen=True)
+class SensorHealthSettings:
+    flatline_hours: int = 6
+
+    def __post_init__(self) -> None:
+        _check(self.flatline_hours >= 3, "sensor_health.flatline_hours must be at least 3")
+
+
+@dataclass(frozen=True)
 class DatasetSettings:
     cutoff: str
     detect_within_hours: float | None = None
@@ -131,6 +139,7 @@ class Settings:
     rules: RuleSettings = field(default_factory=RuleSettings)
     night_flow: NightFlowSettings = field(default_factory=NightFlowSettings)
     cusum: CusumSettings = field(default_factory=CusumSettings)
+    sensor_health: SensorHealthSettings = field(default_factory=SensorHealthSettings)
     datasets: dict[str, DatasetSettings] = field(default_factory=dict)
     app: AppSettings = field(default_factory=AppSettings)
 
@@ -151,6 +160,7 @@ SECTIONS = {
     "rules": RuleSettings,
     "night_flow": NightFlowSettings,
     "cusum": CusumSettings,
+    "sensor_health": SensorHealthSettings,
     "app": AppSettings,
 }
 

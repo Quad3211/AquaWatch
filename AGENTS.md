@@ -62,6 +62,7 @@ If a change is *meant* to move results, update the snapshot with
 | `src/aquawatch/domain.py` | Shared types: `LeakEvent`, `Alarm`, `Incident`, `RunInfo` |
 | `src/aquawatch/settings.py`, `configs/default.toml` | Typed, validated settings and their fingerprint |
 | `src/aquawatch/pipeline.py` | One scoring path for every detector |
+| `src/aquawatch/sensor_health.py` | Flags flat-lined or baseline-less readings as sensor faults: no training on them, no leak alarms |
 | `src/aquawatch/metrics.py` | Event-level scoring, confidence intervals, random baseline |
 | `src/aquawatch/alerts.py` | Incident table shown in the app |
 | `src/aquawatch/simulate.py` | WNTR network and leak simulator |

@@ -115,6 +115,7 @@ AquaWatch/
     detectors.py              # Detector interface (fit / score / alarms) + REGISTRY
     domain.py                 # LeakEvent, Alarm, Incident, RunInfo
     pipeline.py               # Builds features, runs every registered detector
+    sensor_health.py          # Flags stuck/dead meters as data problems, never as leaks
     metrics.py, report.py     # Event-level scoring and the evaluation report
     alerts.py                 # Incident table for the app
     simulate.py, sizing.py    # WNTR simulator and DMA sizing study

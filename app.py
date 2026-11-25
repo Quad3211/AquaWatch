@@ -106,11 +106,14 @@ with st.sidebar:
     )
     st.caption(DETECTOR_HELP[detector])
     prefer_saved = False
+    saved_model_ready = config.MODEL_PATH.exists() and config.PROFILE_PATH.exists()
     if choice != UPLOAD and DATASETS[choice]["path"] == config.DEMO_CSV and detector == "Isolation Forest":
         prefer_saved = st.checkbox(
             "Use saved Isolation Forest (models/)",
-            value=config.MODEL_PATH.exists(),
-            help="The demo should not need to retrain live. Run scripts/train_and_save_model.py first.",
+            value=saved_model_ready,
+            disabled=not saved_model_ready,
+            help="The demo should not need to retrain live. Run `aquawatch train` first "
+            "(it writes the model and its profile to models/).",
         )
     st.markdown("---")
     st.caption("Labels are used only to score results, never to train.")
@@ -145,13 +148,21 @@ try:
 
     scored, train_rows = _score(df, cutoff)
     scored = scored.copy()
+    suspect = int(scored["sensor_suspect"].sum())
+    if suspect:
+        st.sidebar.warning(
+            f"{suspect:,} readings look like a sensor fault (flat-lined or no usable baseline). "
+            "No leak alarms are raised on them; check those meters."
+        )
     if prefer_saved and config.MODEL_PATH.exists() and config.PROFILE_PATH.exists():
         model, profile = load_model_artifacts()
         derived = [
             "expected_flow", "expected_pressure", "flow_rel_dev", "pressure_dev", "day_of_week", "day_type",
         ]
         raw = scored.drop(columns=[c for c in derived if c in scored.columns])
-        scored["ai_pred"] = predict_isolation_forest(model, add_deviations(raw, profile)).to_numpy()
+        saved_alarms = predict_isolation_forest(model, add_deviations(raw, profile)).to_numpy()
+        # Same rule as the pipeline: no leak alarms on readings that look like sensor faults.
+        scored["ai_pred"] = pd.Series(saved_alarms, index=scored.index).where(~scored["sensor_suspect"], 0)
         st.sidebar.success("Using saved Isolation Forest artifacts")
 except (ValueError, KeyError, FileNotFoundError, pd.errors.ParserError) as exc:
     st.error(f"Could not run AquaWatch on this data: {exc}")

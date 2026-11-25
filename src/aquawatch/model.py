@@ -70,6 +70,17 @@ def build_zone_hour_profile(train: pd.DataFrame, by: str | None = None) -> pd.Da
     )
 
 
+def relative_deviation(observed: pd.Series, expected: pd.Series) -> pd.Series:
+    """(observed - expected) / expected, or NaN ("unknown") where expected flow is not positive.
+
+    A zone whose usual flow is zero (dead meter, supply cut) has no meaningful
+    relative deviation; NaN marks it so sensor-health checks can flag it
+    instead of producing infinite or 0/0 values that look like leaks.
+    """
+    usable = expected.where(expected > 0)
+    return (observed - usable) / usable
+
+
 def add_rolling_deviations(
     history: pd.DataFrame, frame: pd.DataFrame, days: int | None = None
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -99,7 +110,7 @@ def add_rolling_deviations(
         # order the grouped rolling result comes back in, so assign by position.
         both[expected] = rolled.to_numpy()
     both = both.sort_values(["zone", "timestamp"])
-    both["flow_rel_dev"] = (both["flow_index"] - both["expected_flow"]) / both["expected_flow"]
+    both["flow_rel_dev"] = relative_deviation(both["flow_index"], both["expected_flow"])
     both["pressure_dev"] = both["pressure_index"] - both["expected_pressure"]
     hist = both[(both["_part"] == "history") & both["expected_flow"].notna()].drop(columns="_part")
     out = both[both["_part"] == "frame"].drop(columns="_part")
@@ -140,7 +151,7 @@ def add_deviations(frame: pd.DataFrame, profile: pd.DataFrame) -> pd.DataFrame:
             f"Some {'/'.join(keys)} combinations have no training reference profile; "
             "the training window may be too short for this profile type."
         )
-    out["flow_rel_dev"] = (out["flow_index"] - out["expected_flow"]) / out["expected_flow"]
+    out["flow_rel_dev"] = relative_deviation(out["flow_index"], out["expected_flow"])
     out["pressure_dev"] = out["pressure_index"] - out["expected_pressure"]
     return out
 
@@ -231,7 +242,7 @@ def load_model_artifacts(
     metadata_path = metadata_path or config.MODEL_METADATA_PATH
     if not model_path.exists() or not profile_path.exists():
         raise FileNotFoundError(
-            f"Saved artifacts not found. Run: python scripts/train_and_save_model.py "
+            f"Saved artifacts not found. Run: aquawatch train "
             f"(looked for {model_path} and {profile_path})"
         )
     if metadata_path.exists():
@@ -239,7 +250,7 @@ def load_model_artifacts(
         if saved_with and saved_with != sklearn.__version__:
             warnings.warn(
                 f"Model was saved with scikit-learn {saved_with} but {sklearn.__version__} "
-                "is installed; retrain with scripts/train_and_save_model.py.",
+                "is installed; retrain with `aquawatch train`.",
                 stacklevel=2,
             )
     model = sio.load(model_path, trusted=TRUSTED_SKOPS_TYPES)

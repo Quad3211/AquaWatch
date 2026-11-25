@@ -47,10 +47,11 @@ def evaluate(
     settings = get_settings()
     path, events_path, events_are_truth = DATASETS[dataset]
     default_cutoff = settings.dataset(dataset).cutoff
-    detect_within = settings.dataset(dataset).detect_within_hours if events_are_truth else None
+    # Detection window: the --detect-within value if given, else the dataset's
+    # setting (only BattLeDIM sets one by default; None = no limit).
+    dataset_window = settings.dataset(dataset).detect_within_hours
+    detect_within = override_window if override_window is not None else dataset_window
     cutoff = cutoff or default_cutoff
-    if override_window is not None and events_are_truth:
-        detect_within = override_window
     if not path.exists():
         sys.exit(
             f"{path} not found. For BattLeDIM run `aquawatch battledim fetch`, then "
@@ -73,6 +74,12 @@ def evaluate(
               f"{detect_within} h of a leak's start to count; later alarms on it are repeats)")
     else:
         print(f"Held-out injected leak events: {len(true_events(scored))}")
+        if detect_within is not None:
+            print(f"A leak counts as caught only if an alarm comes within {detect_within:g} h of its start.")
+    suspect = int(scored["sensor_suspect"].sum())
+    if suspect:
+        print(f"Sensor health: {suspect:,} readings look like a sensor fault (flat-lined or no baseline); "
+              "no leak alarms were raised on them.")
     print(f"Held-out injected anomaly readings: {int(test['simulated_leak_label'].sum())}")
     print()
     print(table.to_string(index=False))

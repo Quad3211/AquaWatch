@@ -38,6 +38,11 @@ min_rise = 0.05           # ...and at least this much higher (fraction)
 k = 0.5                   # allowance (robust SDs per hour)
 h = 8.0                   # alarm level (robust SDs)
 
+[sensor_health]
+# Readings are treated as a sensor fault (not a leak) when a zone's flow has not
+# changed at all for this many consecutive hours, or has no usable expected flow.
+flatline_hours = 6
+
 # Train before `cutoff`, hold out from it onward.
 [datasets.demo]
 cutoff = "2026-11-11"
