@@ -33,9 +33,11 @@ WNTR 1.5 has no build for Python 3.14, so run this module with uv:
 Only wntr, numpy and pandas are imported here, so it runs outside the
 project environment.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -46,8 +48,32 @@ SECONDS_PER_HOUR = 3600
 
 # Typical residential day: low at night, peaks around 07:00 and 19:00 (mean ~1).
 DAILY_PROFILE = np.array(
-    [0.45, 0.38, 0.35, 0.35, 0.42, 0.70, 1.25, 1.65, 1.55, 1.25, 1.10, 1.05,
-     1.05, 1.00, 0.95, 0.95, 1.05, 1.25, 1.50, 1.55, 1.35, 1.05, 0.80, 0.60]
+    [
+        0.45,
+        0.38,
+        0.35,
+        0.35,
+        0.42,
+        0.70,
+        1.25,
+        1.65,
+        1.55,
+        1.25,
+        1.10,
+        1.05,
+        1.05,
+        1.00,
+        0.95,
+        0.95,
+        1.05,
+        1.25,
+        1.50,
+        1.55,
+        1.35,
+        1.05,
+        0.80,
+        0.60,
+    ]
 )
 DAILY_PROFILE = DAILY_PROFILE / DAILY_PROFILE.mean()
 
@@ -132,7 +158,7 @@ def demand_multipliers(
     return np.clip(base * day_factor * hour_noise, 0.05, None)
 
 
-def build_network(cfg: SimConfig, rng: np.random.Generator):
+def build_network(cfg: SimConfig, rng: np.random.Generator) -> tuple[Any, list[Zone]]:
     """Reservoir -> trunk main -> five gridded zones, each with one inlet pipe."""
     import wntr
 
@@ -151,7 +177,7 @@ def build_network(cfg: SimConfig, rng: np.random.Generator):
         n_nodes = cfg.grid * cfg.grid
         mean_inflow = cfg.zone_mean_inflow_m3h[z]
         per_node_m3s = mean_inflow / SECONDS_PER_HOUR / n_nodes
-        noise_args = {}
+        noise_args: dict[str, Any] = {}
         if cfg.liters_per_customer_day is not None:
             zone_customers = mean_inflow * 24 * 1000 / cfg.liters_per_customer_day
             noise_args = {
@@ -180,11 +206,23 @@ def build_network(cfg: SimConfig, rng: np.random.Generator):
             for j in range(cfg.grid):
                 here = f"Z{z + 1}_{i}{j}"
                 if j + 1 < cfg.grid:
-                    wn.add_pipe(f"P_{here}_r", here, f"Z{z + 1}_{i}{j + 1}", length=250,
-                                diameter=grid_d, roughness=100)
+                    wn.add_pipe(
+                        f"P_{here}_r",
+                        here,
+                        f"Z{z + 1}_{i}{j + 1}",
+                        length=250,
+                        diameter=grid_d,
+                        roughness=100,
+                    )
                 if i + 1 < cfg.grid:
-                    wn.add_pipe(f"P_{here}_d", here, f"Z{z + 1}_{i + 1}{j}", length=250,
-                                diameter=grid_d, roughness=100)
+                    wn.add_pipe(
+                        f"P_{here}_d",
+                        here,
+                        f"Z{z + 1}_{i + 1}{j}",
+                        length=250,
+                        diameter=grid_d,
+                        roughness=100,
+                    )
         inlet = f"INLET_Z{z + 1}"
         wn.add_pipe(inlet, trunk, f"Z{z + 1}_00", length=600, diameter=inlet_d, roughness=110)
         far = f"Z{z + 1}_{cfg.grid - 1}{cfg.grid - 1}"
@@ -255,7 +293,7 @@ def plan_leaks(cfg: SimConfig, zones: list[Zone], rng: np.random.Generator) -> p
     return plan
 
 
-def _leak_area_action(control_action_cls, node, area: float):
+def _leak_area_action(control_action_cls: Any, node: Any, area: float) -> Any:
     """A control action that changes a leak's size mid-simulation.
 
     WNTR 1.5 exposes ``leak_area`` as read-only, so a plain
@@ -271,7 +309,7 @@ def _leak_area_action(control_action_cls, node, area: float):
     return action
 
 
-def add_leaks(wn, plan: pd.DataFrame) -> None:
+def add_leaks(wn: Any, plan: pd.DataFrame) -> None:
     """Attach each planned leak to its node; incipient leaks grow in four steps."""
     from wntr.network.controls import Control, ControlAction, SimTimeCondition
 

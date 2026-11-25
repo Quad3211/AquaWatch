@@ -6,23 +6,22 @@ The real BattLeDIM files are downloaded on demand (gitignored), so most tests
 build tiny files in the same format instead. The last test runs on the real
 data only if it has been downloaded and prepared.
 """
+
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pytest
 
-ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+from aquawatch import config
+from aquawatch.battledim import convert, read_leak_list
+from aquawatch.metrics import alarm_episodes, compare_methods, event_scores, random_alarms
+from aquawatch.model import add_rolling_deviations
+from aquawatch.settings import get_settings
 
-import config
-from src.battledim import convert, read_leak_list
-from src.metrics import alarm_episodes, compare_methods, event_scores, random_alarms
-from src.model import add_rolling_deviations
+ROOT = Path(__file__).resolve().parents[1]
 
 CONFIG_YAML = """leakages:
 - # linkID, startTime, endTime, leakDiameter (m), leakType, peakTime
@@ -124,8 +123,13 @@ def test_random_baseline_matches_alarm_budget():
 def test_rolling_profile_uses_only_the_past():
     ts = pd.date_range("2026-01-05", periods=24 * 60, freq="h")
     df = pd.DataFrame(
-        {"zone": "A", "timestamp": ts, "hour": ts.hour, "flow_index": 100 + ts.hour.to_numpy() * 1.0,
-         "pressure_index": 50.0}
+        {
+            "zone": "A",
+            "timestamp": ts,
+            "hour": ts.hour,
+            "flow_index": 100 + ts.hour.to_numpy() * 1.0,
+            "pressure_index": 50.0,
+        }
     )
     history, frame = df[ts < "2026-02-20"], df[ts >= "2026-02-20"].copy()
     frame.loc[frame["timestamp"] >= "2026-03-01", "flow_index"] += 20  # a step change
@@ -138,15 +142,15 @@ def test_rolling_profile_uses_only_the_past():
 
 @pytest.mark.skipif(not config.BATTLEDIM_CSV.exists(), reason="BattLeDIM not downloaded and prepared")
 def test_real_battledim_runs_end_to_end():
-    from src.data_loader import chronological_split, load_sensor_csv
-    from src.pipeline import score_all_methods
+    from aquawatch.data_loader import chronological_split, load_sensor_csv
+    from aquawatch.pipeline import score_all_methods
 
     df = load_sensor_csv(config.BATTLEDIM_CSV)
     events = pd.read_csv(config.BATTLEDIM_EVENTS_CSV, parse_dates=["start", "end"])
-    train, test = chronological_split(df, config.BATTLEDIM_TRAIN_CUTOFF)
+    train, test = chronological_split(df, get_settings().dataset("battledim").cutoff)
     table = compare_methods(
         score_all_methods(train, test, profile_by="rolling"),
         events=events,
-        detect_within_hours=config.BATTLEDIM_DETECT_WITHIN_HOURS,
+        detect_within_hours=get_settings().dataset("battledim").detect_within_hours,
     )
     assert (table["events_total"] == 19).all()

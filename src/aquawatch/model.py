@@ -2,6 +2,7 @@
 
 Owner: Nickel Small
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -16,7 +17,9 @@ import skops
 import skops.io as sio
 from sklearn.ensemble import IsolationForest
 
-import config
+from aquawatch import config
+from aquawatch.errors import DataError
+from aquawatch.settings import get_settings
 
 FEATURE_COLS = ["flow_rel_dev", "pressure_dev"]
 
@@ -51,13 +54,13 @@ def build_zone_hour_profile(train: pd.DataFrame, by: str | None = None) -> pd.Da
 
     Uses the median of *all* training rows, so no labels are needed. The median
     is robust: a few leak hours in the training window barely move it, unlike
-    the mean. ``by`` is a key of ``PROFILE_KEYS`` (default ``config.PROFILE_BY``).
+    the mean. ``by`` is a key of ``PROFILE_KEYS`` (default ``get_settings().profile.by``).
     """
     if train.empty:
-        raise ValueError("No training rows are available.")
-    by = by or config.PROFILE_BY
+        raise DataError("No training rows are available.")
+    by = by or get_settings().profile.by
     if by not in PROFILE_KEYS:
-        raise ValueError(f"Unknown profile type {by!r}; choose from {sorted(PROFILE_KEYS)}.")
+        raise DataError(f"Unknown profile type {by!r}; choose from {sorted(PROFILE_KEYS)}.")
     return (
         add_calendar_columns(train)
         .groupby(PROFILE_KEYS[by])
@@ -67,6 +70,17 @@ def build_zone_hour_profile(train: pd.DataFrame, by: str | None = None) -> pd.Da
         )
         .reset_index()
     )
+
+
+def relative_deviation(observed: pd.Series, expected: pd.Series) -> pd.Series:
+    """(observed - expected) / expected, or NaN ("unknown") where expected flow is not positive.
+
+    A zone whose usual flow is zero (dead meter, supply cut) has no meaningful
+    relative deviation; NaN marks it so sensor-health checks can flag it
+    instead of producing infinite or 0/0 values that look like leaks.
+    """
+    usable = expected.where(expected > 0)
+    return (observed - usable) / usable
 
 
 def add_rolling_deviations(
@@ -83,7 +97,7 @@ def add_rolling_deviations(
     Returns (history_features, frame_features). History rows without a full
     window behind them are dropped.
     """
-    days = days or config.ROLLING_PROFILE_DAYS
+    days = days or get_settings().profile.rolling_days
     both = add_calendar_columns(
         pd.concat([history.assign(_part="history"), frame.assign(_part="frame")], ignore_index=True)
     ).sort_values(["zone", "day_type", "hour", "timestamp"])
@@ -98,12 +112,12 @@ def add_rolling_deviations(
         # order the grouped rolling result comes back in, so assign by position.
         both[expected] = rolled.to_numpy()
     both = both.sort_values(["zone", "timestamp"])
-    both["flow_rel_dev"] = (both["flow_index"] - both["expected_flow"]) / both["expected_flow"]
+    both["flow_rel_dev"] = relative_deviation(both["flow_index"], both["expected_flow"])
     both["pressure_dev"] = both["pressure_index"] - both["expected_pressure"]
     hist = both[(both["_part"] == "history") & both["expected_flow"].notna()].drop(columns="_part")
     out = both[both["_part"] == "frame"].drop(columns="_part")
     if out["expected_flow"].isna().any():
-        raise ValueError("Not enough history before the test window for the rolling profile.")
+        raise DataError("Not enough history before the test window for the rolling profile.")
     return hist.reset_index(drop=True), out.reset_index(drop=True)
 
 
@@ -115,7 +129,7 @@ def select_typical_rows(features: pd.DataFrame, z_cutoff: float | None = None) -
     Isolation Forest's training set, so past leaks in the history do not teach
     the model that leaks are normal.
     """
-    cutoff = config.ROBUST_Z_CUTOFF if z_cutoff is None else z_cutoff
+    cutoff = get_settings().isolation_forest.robust_z_cutoff if z_cutoff is None else z_cutoff
     keep = pd.Series(True, index=features.index)
     for col in FEATURE_COLS:
         grouped = features.groupby("zone")[col]
@@ -124,9 +138,10 @@ def select_typical_rows(features: pd.DataFrame, z_cutoff: float | None = None) -
         # 0.6745 scales MAD to match a standard deviation for normal data.
         robust_z = 0.6745 * (features[col] - median) / mad.replace(0, float("nan"))
         keep &= robust_z.abs().fillna(0) <= cutoff
+        keep &= features[col].notna()  # rows with an unknown deviation are never "typical"
     typical = features[keep]
     if typical.empty:
-        raise ValueError("Robust filter removed every training row; check the data.")
+        raise DataError("Robust filter removed every training row; check the data.")
     return typical
 
 
@@ -135,11 +150,11 @@ def add_deviations(frame: pd.DataFrame, profile: pd.DataFrame) -> pd.DataFrame:
     keys = profile_keys(profile)
     out = add_calendar_columns(frame).merge(profile, on=keys, how="left")
     if out[PROFILE_VALUE_COLS].isna().any().any():
-        raise ValueError(
+        raise DataError(
             f"Some {'/'.join(keys)} combinations have no training reference profile; "
             "the training window may be too short for this profile type."
         )
-    out["flow_rel_dev"] = (out["flow_index"] - out["expected_flow"]) / out["expected_flow"]
+    out["flow_rel_dev"] = relative_deviation(out["flow_index"], out["expected_flow"])
     out["pressure_dev"] = out["pressure_index"] - out["expected_pressure"]
     return out
 
@@ -152,10 +167,11 @@ def train_isolation_forest(
     random_state: int | None = None,
 ) -> IsolationForest:
     """Fit Isolation Forest on normal deviation features only (no labels)."""
+    cfg = get_settings().isolation_forest
     model = IsolationForest(
-        n_estimators=n_estimators if n_estimators is not None else config.IFOREST_N_ESTIMATORS,
-        contamination=contamination if contamination is not None else config.IFOREST_CONTAMINATION,
-        random_state=random_state if random_state is not None else config.IFOREST_RANDOM_STATE,
+        n_estimators=n_estimators if n_estimators is not None else cfg.n_estimators,
+        contamination=contamination if contamination is not None else cfg.contamination,
+        random_state=random_state if random_state is not None else cfg.random_state,
     )
     model.fit(train_features[FEATURE_COLS])
     return model
@@ -204,9 +220,10 @@ def save_model_artifacts(
         "profile_file": profile_path.name,
         "features": FEATURE_COLS,
         "params": model.get_params(),
-        "robust_z_cutoff": config.ROBUST_Z_CUTOFF,
+        "robust_z_cutoff": get_settings().isolation_forest.robust_z_cutoff,
+        "settings_fingerprint": get_settings().fingerprint(),
         "profile_keys": profile_keys(profile),
-        "train_cutoff": config.TRAIN_CUTOFF,
+        "train_cutoff": get_settings().dataset("demo").cutoff,
         "train_rows": None if train is None else len(train),
         "train_data_sha256_16": None if train is None else data_fingerprint(train),
         "sklearn_version": sklearn.__version__,
@@ -228,15 +245,14 @@ def load_model_artifacts(
     metadata_path = metadata_path or config.MODEL_METADATA_PATH
     if not model_path.exists() or not profile_path.exists():
         raise FileNotFoundError(
-            f"Saved artifacts not found. Run: python scripts/train_and_save_model.py "
-            f"(looked for {model_path} and {profile_path})"
+            f"Saved artifacts not found. Run: aquawatch train (looked for {model_path} and {profile_path})"
         )
     if metadata_path.exists():
         saved_with = json.loads(metadata_path.read_text()).get("sklearn_version")
         if saved_with and saved_with != sklearn.__version__:
             warnings.warn(
                 f"Model was saved with scikit-learn {saved_with} but {sklearn.__version__} "
-                "is installed; retrain with scripts/train_and_save_model.py.",
+                "is installed; retrain with `aquawatch train`.",
                 stacklevel=2,
             )
     model = sio.load(model_path, trusted=TRUSTED_SKOPS_TYPES)
@@ -250,8 +266,12 @@ def fit_detector(train: pd.DataFrame, profile_by: str | None = None) -> tuple[Is
     Never reads ``simulated_leak_label`` or ``simulated_event_id``: a real utility
     has no such labels, so training must work without them.
     """
+    from aquawatch.sensor_health import suspect_readings
+
     profile = build_zone_hour_profile(train, by=profile_by)
-    train_features = select_typical_rows(add_deviations(train, profile))
+    features = add_deviations(train, profile)
+    # Same training rows as the pipeline: no suspected sensor faults (aquawatch.sensor_health).
+    train_features = select_typical_rows(features[~suspect_readings(features)])
     model = train_isolation_forest(train_features)
     return model, profile
 

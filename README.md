@@ -25,17 +25,19 @@ Phase 1 **test product** for the Smart Caribbean Utilities pitch: load zone flow
 ```bash
 git clone git@github.com:Quad3211/AquaWatch.git
 cd AquaWatch
-pip install -r requirements.txt
-python scripts/AquaWatch_Evaluate.py
-python scripts/train_and_save_model.py
+pip install -r requirements.txt     # also installs the aquawatch package (editable)
+aquawatch evaluate                  # or: python -m aquawatch.cli evaluate
+aquawatch train
 python -m streamlit run app.py
 ```
 
-If `streamlit` is not recognized in PowerShell, always use `python -m streamlit` (the Scripts folder may not be on PATH).
+Run the install from the repository root: `-e .` in `requirements.txt` installs *this* folder in editable mode, which the package needs (settings in `configs/`, data in `data/` and models in `models/` are found relative to the repository). A non-editable `pip install .` is not supported.
 
-`train_and_save_model.py` writes `models/isolation_forest.skops` plus `model_metadata.json`. Model files are generated, not committed (pickle/joblib files can run code when loaded). If they are missing, the app trains in-session instead.
+If `aquawatch` or `streamlit` is not recognized (the Python Scripts folder may not be on PATH), use `python -m aquawatch.cli` and `python -m streamlit` instead.
 
-Optional checks:
+`aquawatch train` writes `models/isolation_forest.skops` plus `model_metadata.json`. Model files are generated, not committed (pickle/joblib files can run code when loaded). If they are missing, the app trains in-session instead.
+
+Optional checks (development tools: `pip install -r requirements-dev.txt`, or `uv sync`):
 
 ```bash
 python -m pytest -v
@@ -73,7 +75,7 @@ Tabs:
 `data/simulated/` holds a 120-day, 5-zone dataset with 40 leaks, produced by a hydraulic model (WNTR). Evaluate on it with:
 
 ```bash
-python scripts/AquaWatch_Evaluate.py --dataset simulated
+aquawatch evaluate --dataset simulated
 ```
 
 See [data/simulated/DATASHEET.md](data/simulated/DATASHEET.md) for how it was made, how to regenerate it, and its limits.
@@ -96,44 +98,35 @@ To let the Cursor CLI agent work on the repo with the project's limits, put `CUR
 
 ## How results are measured
 
-Every detector is compared with the same code (`src/pipeline.py`): the simple flow rule, a flow + pressure rule, night flow (MNF), CUSUM and Isolation Forest. Training never uses the leak labels. Results are scored **per leak event** (events caught, real vs false alarm episodes, false alarms per zone-week, time to detect) with exact 95% confidence intervals and a random-alarm baseline. See [data/AquaWatch_Data_Notes.md](data/AquaWatch_Data_Notes.md) for the current table and [reports/AquaWatch industry readiness.md](reports/AquaWatch%20industry%20readiness.md) for the roadmap.
+Every detector is compared with the same code (`src/aquawatch/pipeline.py`): the simple flow rule, a flow + pressure rule, night flow (MNF), CUSUM and Isolation Forest. Training never uses the leak labels. Results are scored **per leak event** (events caught, real vs false alarm episodes, false alarms per zone-week, time to detect) with exact 95% confidence intervals and a random-alarm baseline. See [data/AquaWatch_Data_Notes.md](data/AquaWatch_Data_Notes.md) for the current table and [reports/AquaWatch industry readiness.md](reports/AquaWatch%20industry%20readiness.md) for the roadmap.
 
 ## Project structure
 
 ```text
 AquaWatch/
   app.py                      # Streamlit UI (Jason / Romaro)
-  config.py                   # Shared settings (paths, cutoff, model params)
-  requirements.txt
-  README.md
-  TEAM_WORK_SPLIT.md          # Detailed task ownership
-  data/
-    AquaWatch_Synthetic_Sensor_Data.csv
-    AquaWatch_Data_Notes.md
-    raw/  demo/               # Guide §14.2 layout stubs
-  models/                     # Saved Isolation Forest + profile
-  src/
-    schema.py                 # Data contract (pandera), checked on every load
-    data_loader.py            # Nicholas
-    baseline.py               # Nicholas
-    model.py                  # Nickel
-    alerts.py                 # Nickel (+ Jason consumes)
-    metrics.py                # Nicholas
-  tests/
-    test_pipeline.py
-    MAHATMA_TEST_CHECKLIST.md
-  scripts/
-    AquaWatch_Evaluate.py
-    train_and_save_model.py
-  docs/
-    GUIDE_GAP_CHECKLIST.md
-    research_log.md
-    CONTRIBUTION_LOG.md
-    STAGE0_SCOPE.md
-    ARCHITECTURE.md
-    BLOCKERS.md
-    AquaWatch_Research_and_Sources.md
-    pitch/
+  configs/default.toml        # Detector thresholds, dataset cutoffs, app settings (typed, validated)
+  pyproject.toml, uv.lock     # Package definition and locked dependencies
+  src/aquawatch/              # The installable package
+    cli.py                    # `aquawatch` command: evaluate, train, simulate, sizing, battledim, config
+    config.py                 # File locations and fixed product wording
+    settings.py               # Loads and validates configs/default.toml (+ AQUAWATCH__* overrides)
+    schema.py, data_loader.py # Data contract (pandera) and loading
+    model.py                  # Expected-flow profiles, label-free training filter, Isolation Forest
+    baseline.py               # Flow rule, flow + pressure rule, night flow, CUSUM (score functions)
+    detectors.py              # Detector interface (fit / score / alarms) + REGISTRY
+    domain.py                 # LeakEvent, Alarm, Incident, RunInfo
+    pipeline.py               # Builds features, runs every registered detector
+    sensor_health.py          # Flags stuck/dead meters as data problems, never as leaks
+    metrics.py, report.py     # Event-level scoring and the evaluation report
+    alerts.py                 # Incident table for the app
+    simulate.py, sizing.py    # WNTR simulator and DMA sizing study
+    battledim.py, battledim_fetch.py  # BattLeDIM benchmark download + conversion
+  scripts/                    # Thin wrappers around the `aquawatch` command (+ Cursor agent wrappers)
+  tests/                      # pytest, incl. golden results (tests/golden/) and app smoke tests
+  data/                       # Demo CSV, simulated data + datasheets (external/ is gitignored)
+  docs/                       # Guides, benchmark and sizing write-ups, ADRs (docs/adr/)
+  models/                     # Generated model files (gitignored)
 ```
 
 ## Phase plan

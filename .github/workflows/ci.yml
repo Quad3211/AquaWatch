@@ -28,16 +28,22 @@ jobs:
       - name: Install dependencies
         run: uv sync --locked --all-groups
 
-      - name: Lint
-        run: uv run ruff check .
+      - name: Lint and formatting
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
 
-      - name: Tests
-        run: uv run pytest -v
+      - name: Type check
+        run: uv run mypy
+
+      - name: Tests (with golden results and an 80% coverage gate)
+        run: uv run pytest -v --cov --cov-report=term
 
       - name: Train and evaluate end to end
         run: |
-          uv run python scripts/train_and_save_model.py
-          uv run python scripts/AquaWatch_Evaluate.py
+          uv run aquawatch train
+          uv run aquawatch evaluate --dataset demo
+          uv run aquawatch evaluate --dataset simulated
 
       - name: Audit dependencies for known vulnerabilities
         run: uv run pip-audit

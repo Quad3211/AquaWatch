@@ -95,7 +95,7 @@ Use this for research tasks (Nathanael, Nickel, Nicholas, Mahatma):
 4. Add **3 bullets** titled **What this means for AquaWatch**  
 5. Optional helper links (read, don’t copy blindly):
    - scikit-learn IsolationForest docs  
-   - Our code: `src/model.py`  
+   - Our code: `src/aquawatch/model.py`  
 6. Commit + contribution log row
 
 **You do NOT need to change model settings unless metrics break.**  
@@ -168,7 +168,7 @@ and tell Nathanael if the event-level table changes (see `data/AquaWatch_Data_No
 
 **If you are stuck on Python/Streamlit:**
 
-1. Do not rewrite `src/model.py`  
+1. Do not rewrite `src/aquawatch/model.py`  
 2. Ask Nickel/Nicholas only for “what function do I call?”  
 3. Keep UI changes inside `app.py`
 

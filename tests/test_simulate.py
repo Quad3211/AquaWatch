@@ -6,20 +6,19 @@ The dataset tests need only pandas. The simulator tests need WNTR, which has no
 Python 3.14 build yet, so they are skipped where WNTR is missing (CI runs them
 on Python 3.11 and 3.13).
 """
+
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 
 import pandas as pd
 import pytest
 
-ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+from aquawatch import config
+from aquawatch.data_loader import chronological_split, load_sensor_csv
+from aquawatch.settings import get_settings
 
-import config
-from src.data_loader import chronological_split, load_sensor_csv
+ROOT = Path(__file__).resolve().parents[1]
 
 
 @pytest.fixture(scope="module")
@@ -50,7 +49,7 @@ def test_leaks_do_not_overlap_within_a_zone(sim_events):
 
 
 def test_both_windows_contain_many_events(sim_readings):
-    train, test = chronological_split(sim_readings, config.SIM_TRAIN_CUTOFF)
+    train, test = chronological_split(sim_readings, get_settings().dataset("simulated").cutoff)
     for window in (train, test):
         events = window.loc[window["simulated_leak_label"] == 1, "simulated_event_id"].nunique()
         assert events >= 15
@@ -58,7 +57,7 @@ def test_both_windows_contain_many_events(sim_readings):
 
 def test_simulator_is_deterministic_and_grows_incipient_leaks():
     pytest.importorskip("wntr")
-    from src.simulate import SimConfig, run
+    from aquawatch.simulate import SimConfig, run
 
     cfg = SimConfig(days=12, leaks_per_zone=2, seed=5)
     readings_a, events_a = run(cfg)
@@ -77,11 +76,11 @@ def test_simulator_is_deterministic_and_grows_incipient_leaks():
 def test_day_type_profile_removes_weekend_false_alarms(sim_readings):
     """Regression gate for the weekend fix: with a weekday/weekend profile,
     Isolation Forest must keep false alarms low and most alarms real."""
-    from src.baseline import predict_rule
-    from src.metrics import compare_methods
-    from src.model import run_detection
+    from aquawatch.baseline import predict_rule
+    from aquawatch.metrics import compare_methods
+    from aquawatch.model import run_detection
 
-    train, test = chronological_split(sim_readings, config.SIM_TRAIN_CUTOFF)
+    train, test = chronological_split(sim_readings, get_settings().dataset("simulated").cutoff)
     results = {}
     for profile in ("hour", "day_type"):
         scored, _ = run_detection(train, test, profile_by=profile)
@@ -100,7 +99,7 @@ def test_sizing_options_make_big_zones_smoother_and_fix_leak_sizes():
     pytest.importorskip("wntr")
     import numpy as np
 
-    from src.simulate import SimConfig, demand_multipliers, run
+    from aquawatch.simulate import SimConfig, demand_multipliers, run
 
     cfg = SimConfig(days=14, liters_per_customer_day=600.0)
     rng = np.random.default_rng(0)
@@ -111,8 +110,13 @@ def test_sizing_options_make_big_zones_smoother_and_fix_leak_sizes():
     assert np.std(small / base) > 5 * np.std(big / base)
 
     sizing = SimConfig(
-        days=12, leaks_per_zone=2, zones=2, zone_mean_inflow_m3h=(10.0, 100.0),
-        zone_elevations_m=(20.0, 20.0), leak_sizes_m3h=(5.0,), liters_per_customer_day=600.0,
+        days=12,
+        leaks_per_zone=2,
+        zones=2,
+        zone_mean_inflow_m3h=(10.0, 100.0),
+        zone_elevations_m=(20.0, 20.0),
+        leak_sizes_m3h=(5.0,),
+        liters_per_customer_day=600.0,
         scale_pipes=True,
     )
     _, events = run(sizing)

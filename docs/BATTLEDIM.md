@@ -21,7 +21,7 @@ python scripts/AquaWatch_Evaluate.py --dataset battledim --profile rolling --det
 ```
 Everything goes in `data/external/battledim/`, which is gitignored. The raw files are not committed.
 
-## How it maps onto AquaWatch (`src/battledim.py`)
+## How it maps onto AquaWatch (`src/aquawatch/battledim.py`)
 - **One zone, "L-Town".** Water enters only from reservoirs R1 and R2, through pipes p227 and p235, so their summed flow is the whole network's inflow and every leak appears in it. PUMP_1 only moves water inside the network into tank T1, so it is not added.
 - **Pressure** is the median of the 33 sensors.
 - Readings are converted to **hourly means**.

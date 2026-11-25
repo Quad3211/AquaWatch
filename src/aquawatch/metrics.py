@@ -16,12 +16,18 @@ With only a handful of events, every rate gets an exact (Clopper-Pearson) 95%
 confidence interval so small samples are not over-read. Point-wise numbers are
 kept as secondary columns for comparison with earlier results.
 """
+
 from __future__ import annotations
+
+from typing import Any
 
 import numpy as np
 import pandas as pd
 from scipy.stats import binomtest
 from sklearn.metrics import precision_score, recall_score
+
+from aquawatch.detectors import METHODS  # display name -> prediction column
+from aquawatch.domain import as_event_frame
 
 HOURS_PER_WEEK = 168
 RANDOM_BASELINE_SEED = 2026
@@ -41,9 +47,7 @@ def episode_ids(scored: pd.DataFrame, pred_col: str, *, max_gap_hours: int = 1) 
     Flags in the same zone no more than ``max_gap_hours`` apart share an episode,
     so a leak flagged for 10 straight hours is one alarm, not ten.
     """
-    flagged = scored.loc[scored[pred_col] == 1, ["zone", "timestamp"]].sort_values(
-        ["zone", "timestamp"]
-    )
+    flagged = scored.loc[scored[pred_col] == 1, ["zone", "timestamp"]].sort_values(["zone", "timestamp"])
     ids = pd.Series(np.nan, index=scored.index)
     if flagged.empty:
         return ids
@@ -53,9 +57,7 @@ def episode_ids(scored: pd.DataFrame, pred_col: str, *, max_gap_hours: int = 1) 
     return ids
 
 
-def alarm_episodes(
-    scored: pd.DataFrame, pred_col: str, *, max_gap_hours: int = 1
-) -> pd.DataFrame:
+def alarm_episodes(scored: pd.DataFrame, pred_col: str, *, max_gap_hours: int = 1) -> pd.DataFrame:
     """Group flagged hours into episodes per zone: zone, start, end, hours."""
     ids = episode_ids(scored, pred_col, max_gap_hours=max_gap_hours)
     flagged = scored.loc[ids.notna(), ["zone", "timestamp"]].assign(episode=ids.dropna())
@@ -63,8 +65,12 @@ def alarm_episodes(
         return pd.DataFrame(columns=["zone", "start", "end", "hours"])
     return (
         flagged.groupby("episode")
-        .agg(zone=("zone", "first"), start=("timestamp", "min"), end=("timestamp", "max"),
-             hours=("timestamp", "size"))
+        .agg(
+            zone=("zone", "first"),
+            start=("timestamp", "min"),
+            end=("timestamp", "max"),
+            hours=("timestamp", "size"),
+        )
         .reset_index(drop=True)
     )
 
@@ -82,7 +88,7 @@ def true_events(scored: pd.DataFrame) -> pd.DataFrame:
     )
 
 
-def _overlaps(zone: str, start, end, others: pd.DataFrame) -> pd.Series:
+def _overlaps(zone: str, start: pd.Timestamp, end: pd.Timestamp, others: pd.DataFrame) -> pd.Series:
     return (others["zone"] == zone) & (others["start"] <= end) & (others["end"] >= start)
 
 
@@ -95,6 +101,7 @@ def _scoring_events(scored: pd.DataFrame, events: pd.DataFrame | None) -> tuple[
     inside the scored window are scored; leaks that began earlier still count as
     active, so alarms they cause are not called false.
     """
+    events = as_event_frame(events)
     if events is None:
         found = true_events(scored)
         return found, found
@@ -106,7 +113,7 @@ def _scoring_events(scored: pd.DataFrame, events: pd.DataFrame | None) -> tuple[
     return active[active["start"] >= lo], active
 
 
-def _detection_end(ev, detect_within_hours: float | None):
+def _detection_end(ev: Any, detect_within_hours: float | None) -> pd.Timestamp:
     if detect_within_hours is None:
         return ev.end
     return min(ev.end, ev.start + pd.Timedelta(hours=detect_within_hours))
@@ -162,7 +169,10 @@ def _detections_by_episode_start(
 
 
 def _classify_by_episode_start(
-    episodes: pd.DataFrame, to_score: pd.DataFrame, detections: pd.DataFrame, detect_within_hours
+    episodes: pd.DataFrame,
+    to_score: pd.DataFrame,
+    detections: pd.DataFrame,
+    detect_within_hours: float | None,
 ) -> tuple[int, int]:
     """(true, repeat) episode counts when leaks overlap, BattLeDIM-style.
 
@@ -284,16 +294,6 @@ def random_alarms(scored: pd.DataFrame, like_col: str, seed: int = RANDOM_BASELI
         start = rng.integers(0, max(1, len(rows) - length + 1))
         out.loc[rows[start : start + length]] = 1
     return out
-
-
-# Display name -> prediction column, in the order tables show them.
-METHODS = {
-    "Simple flow rule": "rule_pred",
-    "Flow + pressure rule": "fp_rule_pred",
-    "Night flow (MNF)": "mnf_pred",
-    "CUSUM on flow": "cusum_pred",
-    "Isolation Forest": "ai_pred",
-}
 
 
 def compare_methods(

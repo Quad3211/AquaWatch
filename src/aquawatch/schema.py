@@ -7,10 +7,13 @@ quietly wrong alerts later. ``flow_index`` and ``pressure_index`` stay unitless
 on purpose: the synthetic data is not calibrated to litres/second or metres,
 and renaming the columns to units would imply a calibration we do not have.
 """
+
 from __future__ import annotations
 
 import pandas as pd
 import pandera.pandas as pa
+
+from aquawatch.errors import DataError
 
 SENSOR_SCHEMA = pa.DataFrameSchema(
     {
@@ -39,7 +42,7 @@ def validate_sensor_frame(df: pd.DataFrame) -> pd.DataFrame:
             .reset_index(name="rows")
             .to_string(index=False)
         )
-        raise ValueError(f"Sensor data failed validation:\n{summary}") from exc
+        raise DataError(f"Sensor data failed validation:\n{summary}") from exc
 
 
 def find_gaps(df: pd.DataFrame, freq: str = "h") -> pd.DataFrame:

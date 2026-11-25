@@ -8,4 +8,6 @@ skops>=0.10,<1
 pandera>=0.24,<1
 streamlit>=1.50,<2
 plotly>=5.18,<8
-pytest>=7.0,<10
+# Install the aquawatch package itself (editable) so `import aquawatch` and the
+# `aquawatch` command work.
+-e .

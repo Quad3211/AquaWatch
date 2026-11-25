@@ -9,6 +9,14 @@ This guide is for building AquaWatch out yourself, one step at a time. It starts
 
 Every step lists **why**, **what to do**, **where**, and **done when**. Do the steps in order: each one leaves the repo working and tested, and later steps rely on earlier ones.
 
+## Progress
+
+| Phase | Status | Notes |
+|---|---|---|
+| A: Foundation | **Done** (branch `phase-a/foundation`) | Done in the order A2, A1, A3, A4, A5, A6, so the golden test existed before the first refactor. A1: `app.py` stays at the repo root; there is no `apps/` folder yet. A3: settings use the standard library (TOML + dataclasses) instead of `pydantic-settings` ([ADR 0001](adr/0001-settings-format.md)). A5: detectors live in one module, `src/aquawatch/detectors.py`, not a `detection/detectors/` package. |
+| B: Detection quality | Next | B1 walk-forward evaluation can tune thresholds on each detector's `score()`. |
+| C–E | Not started | |
+
 ---
 
 ## 0. How to work through this
@@ -33,7 +41,7 @@ Every step lists **why**, **what to do**, **where**, and **done when**. Do the s
 |---|---|---|
 | Layout | `src/` modules, `config.py` at root, `sys.path` hacks in 9 scripts and tests | Not an installable package; imports depend on where you run from |
 | Config | Module-level constants in `config.py` | Not typed, not per-environment, not recorded with results |
-| Detectors | 5 functions with different signatures (`src/baseline.py`, `src/model.py`), wired by hand in `src/pipeline.py` | No shared interface; adding a detector means editing several files |
+| Detectors | 5 functions with different signatures (`src/aquawatch/baseline.py`, `src/aquawatch/model.py`), wired by hand in `src/aquawatch/pipeline.py` | No shared interface; adding a detector means editing several files |
 | Evaluation | Event-level metrics, matched random baseline, one chronological split | No walk-forward; thresholds fixed by hand, never validated |
 | Data | CSVs loaded in full, then pandera checks | No storage, no incremental loads, no data-quality history |
 | App | Streamlit trains and scores on every run | The UI does the computing; nothing is shared or persisted |
@@ -140,7 +148,7 @@ tests/  docs/  scripts/ (thin wrappers only)
   - `RunInfo` (run id, data range, config fingerprint, model version, git SHA)
 
   Keep the hourly readings table as a validated DataFrame (pandera schema), and convert to types only at the boundaries.
-- **Done when:** `src/alerts.py` and `src/metrics.py` take and return these types for incidents and events.
+- **Done when:** `src/aquawatch/alerts.py` and `src/aquawatch/metrics.py` take and return these types for incidents and events.
 
 ### A5. One detector interface and a registry *(refactor)*
 - **Why:** each of today's 5 detectors has a different function signature. With one interface, adding a detector touches one file, and the pipeline, evaluation, app and API all pick it up.
@@ -148,9 +156,10 @@ tests/  docs/  scripts/ (thin wrappers only)
   ```python
   class Detector(Protocol):
       name: str
-      def fit(self, history: pd.DataFrame) -> "Detector": ...      # label-free
-      def score(self, frame: pd.DataFrame) -> pd.Series: ...        # higher = more unusual
-      def alarms(self, frame: pd.DataFrame) -> pd.Series: ...       # 0/1, uses its own threshold
+
+      def fit(self, history: pd.DataFrame) -> "Detector": ...  # label-free
+      def score(self, frame: pd.DataFrame) -> pd.Series: ...  # higher = more unusual
+      def alarms(self, frame: pd.DataFrame) -> pd.Series: ...  # 0/1, uses its own threshold
   ```
   - Wrap the flow rule, flow + pressure rule, night flow, CUSUM and Isolation Forest as classes in `detection/detectors/`.
   - Register each in `detection/registry.py`, and make the pipeline loop over the registry.
