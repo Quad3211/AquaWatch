@@ -105,3 +105,69 @@ def evaluate(
         "\nWhere events are few, the confidence intervals are wide; do not read small differences"
         " as real."
     )
+
+
+def evaluate_walk_forward(
+    dataset: str = "simulated",
+    profile: str | None = None,
+    detect_within: float | None = None,
+    budget: float | None = None,
+    train_days: int | None = None,
+    val_days: int | None = None,
+    test_days: int | None = None,
+    step_days: int | None = None,
+) -> None:
+    """Walk-forward evaluation with label-free, budget-tuned thresholds (build guide B1)."""
+    from aquawatch.walkforward import format_pooled, run_walk_forward
+
+    settings = get_settings()
+    profile = profile or settings.profile.by
+    path, events_path, events_are_truth = DATASETS[dataset]
+    if not path.exists():
+        sys.exit(
+            f"{path} not found. For BattLeDIM run `aquawatch battledim fetch`, "
+            "then `aquawatch battledim prepare`."
+        )
+    window = detect_within if detect_within is not None else settings.dataset(dataset).detect_within_hours
+    events = (
+        pd.read_csv(events_path, parse_dates=["start", "end"]) if events_are_truth and events_path else None
+    )
+    df = load_sensor_csv(path)
+    per_fold, pooled, folds = run_walk_forward(
+        df,
+        profile_by=profile,
+        events=events,
+        detect_within=window,
+        train_days=train_days,
+        val_days=val_days,
+        test_days=test_days,
+        step_days=step_days,
+        budget=budget,
+    )
+    cfg = settings.walk_forward
+    budget = cfg.alarm_budget_per_zone_week if budget is None else budget
+    run = RunInfo.create(dataset, folds[0].test_start, folds[-1].test_end, settings.fingerprint())
+    print(
+        f"Run {run.run_id} | walk-forward | dataset: {dataset} ({path.name}) | "
+        f"expected-flow profile: {profile}"
+    )
+    print(f"Settings fingerprint: {run.settings_fingerprint} | code version: {run.code_version}")
+    print(
+        f"{len(folds)} folds: train from {folds[0].train_start.date()}, then validation "
+        f"{val_days or cfg.val_days} days + test {test_days or cfg.test_days} days, "
+        f"moving {step_days or cfg.step_days} days each fold "
+        f"(first test {folds[0].test_start.date()}, last ends {folds[-1].test_end.date()})."
+    )
+    print(
+        f"Thresholds tuned on each validation window without labels: the most sensitive threshold "
+        f"with at most {budget:g} alarm(s) per zone-week. "
+        "'default' = the fixed thresholds in configs/default.toml."
+    )
+    if window is not None:
+        print(f"A leak counts as caught only if an alarm starts within {window:g} h of it.")
+    print()
+    print(format_pooled(pooled).to_string(index=False))
+    print(
+        "\nPooled over all test windows. Each test window is unseen by training and by threshold tuning."
+        "\nResults on simulated scenarios, not real utility data."
+    )

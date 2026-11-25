@@ -98,6 +98,8 @@ To let the Cursor CLI agent work on the repo with the project's limits, put `CUR
 
 ## How results are measured
 
+`aquawatch evaluate` uses one chronological train/test split. `aquawatch evaluate --protocol walk-forward` repeats it over time: each detector's threshold is tuned on a validation window to an alarm budget (no labels), then it is scored on the next unseen test window, and results are pooled over the folds ([ADR 0002](docs/adr/0002-label-free-threshold-tuning.md)).
+
 Every detector is compared with the same code (`src/aquawatch/pipeline.py`): the simple flow rule, a flow + pressure rule, night flow (MNF), CUSUM and Isolation Forest. Training never uses the leak labels. Results are scored **per leak event** (events caught, real vs false alarm episodes, false alarms per zone-week, time to detect) with exact 95% confidence intervals and a random-alarm baseline. See [data/AquaWatch_Data_Notes.md](data/AquaWatch_Data_Notes.md) for the current table and [reports/AquaWatch industry readiness.md](reports/AquaWatch%20industry%20readiness.md) for the roadmap.
 
 ## Project structure

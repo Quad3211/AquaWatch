@@ -49,6 +49,21 @@ In BattLeDIM, a leak is running in **every** hour of 2019. Many 2018 leaks are n
 
 **Static weekday/weekend profile** (the default for the other datasets) learns 2018 once. In 2019 the network's inflow sits permanently above that, because leaks accumulate and nothing is repaired, so every detector alarms in roughly 35–50% of all hours. That makes its recall meaningless here, so use the rolling profile for BattLeDIM.
 
+## Walk-forward results
+`aquawatch evaluate --dataset battledim --profile rolling --protocol walk-forward --train-days 180 --val-days 28 --test-days 28 --step-days 28` runs 18 monthly folds from July 2018 to December 2019. That gives 23 test leaks. Thresholds are tuned without labels to 1 alarm per week, and a leak counts as caught only if an alarm starts within 168 h of it.
+
+| Method | Thresholds | Leaks caught (95% CI) | Real / judged alarms | False alarms per week |
+|---|---|---|---|---|
+| Isolation Forest | default | 15/23 (43–84%) | 50/110 | 0.83 |
+| Night flow (MNF) | tuned | 14/23 (39–80%) | 41/84 | 0.60 |
+| Isolation Forest | tuned | 12/23 (31–73%) | 24/57 | 0.46 |
+| Simple flow rule | default | 10/23 (23–66%) | 39/74 | 0.49 |
+| Flow + pressure rule | tuned | 9/23 (20–61%) | 72/142 | 0.97 |
+| CUSUM on flow | default | 8/23 (16–57%) | 19/51 | 0.44 |
+| **Random (same budget as tuned Isolation Forest)** | — | **15/23 (43–84%)** | 24/58 | 0.47 |
+
+Over many folds the conclusion stands: **with one inflow meter for the whole town, no detector reliably beats random alarms with the same budget.** On the small simulated DMAs, the same method puts CUSUM far ahead of random (24/25 against 7/25). This is the DMA sizing result again: zone size, not detector choice, decides whether leaks can be found.
+
 ## What this shows
 - **Only Isolation Forest clearly beats random alarms, and only when detection must be fast.** Within 24 h it catches 7 of 19 leaks with 14 false alarms. The same number of random alarms catches 2 with 79 false. With a 7-day window, random alarms do better than every detector, because alarms every few days land in most windows by chance.
 - **One inflow meter for a whole town is too coarse.** L-Town takes in about 230 m³/h, and most of its 2019 leaks are only 2–7% of that, on top of seasonal changes. The competition's best teams used all 33 pressure sensors, the household meters and a calibrated hydraulic model to find leaks.
