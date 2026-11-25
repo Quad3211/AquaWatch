@@ -5,9 +5,8 @@ Owners: Jason Williams (layout) / Romaro Dixion (charts & demo controls)
 Run:
     python -m streamlit run app.py
 """
-from __future__ import annotations
 
-from io import BytesIO
+from __future__ import annotations
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -16,7 +15,12 @@ from plotly.subplots import make_subplots
 
 from aquawatch import config
 from aquawatch.alerts import build_alert_table, build_event_alerts
-from aquawatch.data_loader import chronological_split, load_sensor_csv
+from aquawatch.data_loader import (
+    chronological_split,
+    load_sensor_csv,
+    load_uploaded_csv,
+    midpoint_cutoff,
+)
 from aquawatch.metrics import (
     METHODS,
     compare_methods,
@@ -76,18 +80,13 @@ def _load_path(path: str) -> pd.DataFrame:
 @st.cache_data(show_spinner=False)
 def _load_upload(data: bytes) -> pd.DataFrame:
     # Cached on the file's bytes, so a different upload always reloads.
-    return load_sensor_csv(BytesIO(data))
+    return load_uploaded_csv(data)
 
 
 @st.cache_data(show_spinner="Training on the history and scoring every detector...")
 def _score(df: pd.DataFrame, cutoff: str) -> tuple[pd.DataFrame, int]:
     train, test = chronological_split(df, cutoff)
     return score_all_methods(train, test), len(train)
-
-
-def _midpoint(df: pd.DataFrame) -> str:
-    start, end = df["timestamp"].min(), df["timestamp"].max()
-    return str((start + (end - start) / 2).normalize().date())
 
 
 # ---------------------------------------------------------------- sidebar
@@ -129,7 +128,7 @@ try:
         cutoff = str(
             st.sidebar.date_input(
                 "Train on data before",
-                value=pd.Timestamp(_midpoint(df)),
+                value=pd.Timestamp(midpoint_cutoff(df)),
                 min_value=df["timestamp"].min(),
                 max_value=df["timestamp"].max(),
             )
@@ -157,7 +156,12 @@ try:
     if prefer_saved and config.MODEL_PATH.exists() and config.PROFILE_PATH.exists():
         model, profile = load_model_artifacts()
         derived = [
-            "expected_flow", "expected_pressure", "flow_rel_dev", "pressure_dev", "day_of_week", "day_type",
+            "expected_flow",
+            "expected_pressure",
+            "flow_rel_dev",
+            "pressure_dev",
+            "day_of_week",
+            "day_type",
         ]
         raw = scored.drop(columns=[c for c in derived if c in scored.columns])
         saved_alarms = predict_isolation_forest(model, add_deviations(raw, profile)).to_numpy()
@@ -283,27 +287,73 @@ with tab_chart:
     )
     z = scored[(scored["zone"] == zone) & scored["timestamp"].between(*window)].sort_values("timestamp")
 
-    fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.06,
-                        subplot_titles=(f"Inflow ({flow_unit})", f"Pressure ({pressure_unit})"))
-    fig.add_trace(go.Scatter(x=z["timestamp"], y=z["expected_flow"], name="expected flow",
-                             line={"color": "#9aa5b1", "dash": "dot"}), row=1, col=1)
-    fig.add_trace(go.Scatter(x=z["timestamp"], y=z["flow_index"], name="measured flow",
-                             line={"color": "#1f6fb2"}), row=1, col=1)
+    fig = make_subplots(
+        rows=2,
+        cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.06,
+        subplot_titles=(f"Inflow ({flow_unit})", f"Pressure ({pressure_unit})"),
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=z["timestamp"],
+            y=z["expected_flow"],
+            name="expected flow",
+            line={"color": "#9aa5b1", "dash": "dot"},
+        ),
+        row=1,
+        col=1,
+    )
+    fig.add_trace(
+        go.Scatter(x=z["timestamp"], y=z["flow_index"], name="measured flow", line={"color": "#1f6fb2"}),
+        row=1,
+        col=1,
+    )
     alarms = z[z[pred_col] == 1]
-    fig.add_trace(go.Scatter(x=alarms["timestamp"], y=alarms["flow_index"], mode="markers",
-                             name=f"alarm ({detector})", marker={"color": "#d1495b", "size": 7}),
-                  row=1, col=1)
-    fig.add_trace(go.Scatter(x=z["timestamp"], y=z["expected_pressure"], name="expected pressure",
-                             line={"color": "#9aa5b1", "dash": "dot"}, showlegend=False), row=2, col=1)
-    fig.add_trace(go.Scatter(x=z["timestamp"], y=z["pressure_index"], name="measured pressure",
-                             line={"color": "#2a9d8f"}), row=2, col=1)
+    fig.add_trace(
+        go.Scatter(
+            x=alarms["timestamp"],
+            y=alarms["flow_index"],
+            mode="markers",
+            name=f"alarm ({detector})",
+            marker={"color": "#d1495b", "size": 7},
+        ),
+        row=1,
+        col=1,
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=z["timestamp"],
+            y=z["expected_pressure"],
+            name="expected pressure",
+            line={"color": "#9aa5b1", "dash": "dot"},
+            showlegend=False,
+        ),
+        row=2,
+        col=1,
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=z["timestamp"], y=z["pressure_index"], name="measured pressure", line={"color": "#2a9d8f"}
+        ),
+        row=2,
+        col=1,
+    )
     if has_labels:
         leaks = true_events(z)
         for ev in leaks.itertuples():
-            fig.add_vrect(x0=ev.start, x1=ev.end + pd.Timedelta(hours=1), fillcolor="#f4a261",
-                          opacity=0.18, line_width=0, row="all", col=1)
-    fig.update_layout(height=560, margin={"l": 10, "r": 10, "t": 40, "b": 10},
-                      legend={"orientation": "h", "y": -0.08})
+            fig.add_vrect(
+                x0=ev.start,
+                x1=ev.end + pd.Timedelta(hours=1),
+                fillcolor="#f4a261",
+                opacity=0.18,
+                line_width=0,
+                row="all",
+                col=1,
+            )
+    fig.update_layout(
+        height=560, margin={"l": 10, "r": 10, "t": 40, "b": 10}, legend={"orientation": "h", "y": -0.08}
+    )
     st.plotly_chart(fig, width="stretch")
     st.caption(
         "Dotted lines are the zone's usual level for that hour and day type. "
@@ -325,8 +375,9 @@ with tab_metrics:
         if settings["events"] is not None and settings["events"].exists():
             st.markdown("**Leaks caught, by size** (leak flow as % of the zone's average inflow)")
             events_table = pd.read_csv(settings["events"])
-            st.dataframe(detection_by_leak_size(scored, METHODS, events_table), hide_index=True,
-                         width="stretch")
+            st.dataframe(
+                detection_by_leak_size(scored, METHODS, events_table), hide_index=True, width="stretch"
+            )
     else:
         st.info("This data has no leak labels, so detectors cannot be scored. Alerts still work.")
     st.warning("Simulated test only; not validated on NWC sensor data.")
@@ -352,8 +403,9 @@ with tab_insights:
             "leak of *L* m³/h quickly, keep zones to about **5 × L** m³/h. For a 5 m³/h leak that is "
             "about 25 m³/h, roughly 1,000 customers."
         )
-        pick = st.selectbox("Detector", list(METHODS), index=list(METHODS).index(detector),
-                            key="insights_detector")
+        pick = st.selectbox(
+            "Detector", list(METHODS), index=list(METHODS).index(detector), key="insights_detector"
+        )
         part = sizing[sizing["method"] == pick].assign(rate=lambda d: d["caught_24h"] / d["leaks"])
         grid = part.pivot(index="zone_m3h", columns="leak_m3h", values="rate").sort_index()
         counts = part.pivot(index="zone_m3h", columns="leak_m3h", values="leaks").sort_index()

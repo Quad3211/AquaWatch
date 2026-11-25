@@ -33,6 +33,7 @@ WNTR 1.5 has no build for Python 3.14, so run this module with uv:
 Only wntr, numpy and pandas are imported here, so it runs outside the
 project environment.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -47,8 +48,32 @@ SECONDS_PER_HOUR = 3600
 
 # Typical residential day: low at night, peaks around 07:00 and 19:00 (mean ~1).
 DAILY_PROFILE = np.array(
-    [0.45, 0.38, 0.35, 0.35, 0.42, 0.70, 1.25, 1.65, 1.55, 1.25, 1.10, 1.05,
-     1.05, 1.00, 0.95, 0.95, 1.05, 1.25, 1.50, 1.55, 1.35, 1.05, 0.80, 0.60]
+    [
+        0.45,
+        0.38,
+        0.35,
+        0.35,
+        0.42,
+        0.70,
+        1.25,
+        1.65,
+        1.55,
+        1.25,
+        1.10,
+        1.05,
+        1.05,
+        1.00,
+        0.95,
+        0.95,
+        1.05,
+        1.25,
+        1.50,
+        1.55,
+        1.35,
+        1.05,
+        0.80,
+        0.60,
+    ]
 )
 DAILY_PROFILE = DAILY_PROFILE / DAILY_PROFILE.mean()
 
@@ -181,11 +206,23 @@ def build_network(cfg: SimConfig, rng: np.random.Generator) -> tuple[Any, list[Z
             for j in range(cfg.grid):
                 here = f"Z{z + 1}_{i}{j}"
                 if j + 1 < cfg.grid:
-                    wn.add_pipe(f"P_{here}_r", here, f"Z{z + 1}_{i}{j + 1}", length=250,
-                                diameter=grid_d, roughness=100)
+                    wn.add_pipe(
+                        f"P_{here}_r",
+                        here,
+                        f"Z{z + 1}_{i}{j + 1}",
+                        length=250,
+                        diameter=grid_d,
+                        roughness=100,
+                    )
                 if i + 1 < cfg.grid:
-                    wn.add_pipe(f"P_{here}_d", here, f"Z{z + 1}_{i + 1}{j}", length=250,
-                                diameter=grid_d, roughness=100)
+                    wn.add_pipe(
+                        f"P_{here}_d",
+                        here,
+                        f"Z{z + 1}_{i + 1}{j}",
+                        length=250,
+                        diameter=grid_d,
+                        roughness=100,
+                    )
         inlet = f"INLET_Z{z + 1}"
         wn.add_pipe(inlet, trunk, f"Z{z + 1}_00", length=600, diameter=inlet_d, roughness=110)
         far = f"Z{z + 1}_{cfg.grid - 1}{cfg.grid - 1}"

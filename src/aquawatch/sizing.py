@@ -24,6 +24,7 @@ so bigger zones have smoother relative demand, as real ones do. Each zone gets
 8 leaks of 2, 5 and 10 m3/h in turn. Training uses the first 60 days and testing
 the last 60, with no labels used for training.
 """
+
 from __future__ import annotations
 
 import sys
@@ -92,14 +93,24 @@ def analyse() -> None:
                 merged = merged.merge(events[["event_id", "target_leak_m3h"]], on="event_id")
                 for row in merged.itertuples():
                     detection_rows.append(
-                        {"seed": seed, "zone_m3h": size, "leak_m3h": row.target_leak_m3h, "method": method,
-                         "caught_24h": row.detected_24h, "caught_any": row.detected_any,
-                         "hours_to_detect": row.hours_to_detect_any}
+                        {
+                            "seed": seed,
+                            "zone_m3h": size,
+                            "leak_m3h": row.target_leak_m3h,
+                            "method": method,
+                            "caught_24h": row.detected_24h,
+                            "caught_any": row.detected_any,
+                            "hours_to_detect": row.hours_to_detect_any,
+                        }
                     )
                 stats = event_scores(zone_scored, col)
                 alarm_rows.append(
-                    {"seed": seed, "zone_m3h": size, "method": method,
-                     "false_alarms_per_week": stats["false_alarms_per_zone_week"]}
+                    {
+                        "seed": seed,
+                        "zone_m3h": size,
+                        "method": method,
+                        "false_alarms_per_week": stats["false_alarms_per_zone_week"],
+                    }
                 )
 
     detections = pd.DataFrame(detection_rows)
@@ -127,7 +138,7 @@ def analyse() -> None:
         caught = part.pivot(index="zone_m3h", columns="leak_m3h", values="caught_24h")
         totals = part.pivot(index="zone_m3h", columns="leak_m3h", values="leaks")
         # Cells with no leaks of that size in that zone show "-" instead of crashing.
-        table = (caught.fillna(0).astype(int).astype(str) + "/" + totals.fillna(0).astype(int).astype(str))
+        table = caught.fillna(0).astype(int).astype(str) + "/" + totals.fillna(0).astype(int).astype(str)
         table = table.where(totals.notna(), "-")
         table.columns = [f"{c:g} m3/h leak" for c in table.columns]
         table["false alarms/wk"] = part.groupby("zone_m3h")["false_alarms_per_week"].first()
@@ -135,11 +146,14 @@ def analyse() -> None:
         print(f"== {method}\n{table.to_string()}\n")
     bands = [0, 2.5, 5, 10, 20, 50, 101]
     labels = ["<2.5%", "2.5-5%", "5-10%", "10-20%", "20-50%", ">=50%"]
-    detections["band"] = pd.cut(100 * detections["leak_m3h"] / detections["zone_m3h"], bands,
-                                labels=labels, right=False)
-    pooled = detections.groupby(["band", "method"], observed=True).agg(
-        caught=("caught_24h", "sum"), leaks=("caught_24h", "size")
-    ).reset_index()
+    detections["band"] = pd.cut(
+        100 * detections["leak_m3h"] / detections["zone_m3h"], bands, labels=labels, right=False
+    )
+    pooled = (
+        detections.groupby(["band", "method"], observed=True)
+        .agg(caught=("caught_24h", "sum"), leaks=("caught_24h", "size"))
+        .reset_index()
+    )
     pooled["cell"] = pooled["caught"].astype(int).astype(str) + "/" + pooled["leaks"].astype(str)
     rule = pooled.pivot(index="band", columns="method", values="cell")[list(METHODS)]
     rule.to_csv(OUT_DIR / "dma_sizing_by_leak_share.csv")
@@ -147,4 +161,3 @@ def analyse() -> None:
     print(rule.to_string())
     print()
     print(f"Saved {RESULTS_CSV} and {OUT_DIR / 'dma_sizing_by_leak_share.csv'}")
-

@@ -6,6 +6,7 @@ The dataset tests need only pandas. The simulator tests need WNTR, which has no
 Python 3.14 build yet, so they are skipped where WNTR is missing (CI runs them
 on Python 3.11 and 3.13).
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -109,8 +110,13 @@ def test_sizing_options_make_big_zones_smoother_and_fix_leak_sizes():
     assert np.std(small / base) > 5 * np.std(big / base)
 
     sizing = SimConfig(
-        days=12, leaks_per_zone=2, zones=2, zone_mean_inflow_m3h=(10.0, 100.0),
-        zone_elevations_m=(20.0, 20.0), leak_sizes_m3h=(5.0,), liters_per_customer_day=600.0,
+        days=12,
+        leaks_per_zone=2,
+        zones=2,
+        zone_mean_inflow_m3h=(10.0, 100.0),
+        zone_elevations_m=(20.0, 20.0),
+        leak_sizes_m3h=(5.0,),
+        liters_per_customer_day=600.0,
         scale_pipes=True,
     )
     _, events = run(sizing)

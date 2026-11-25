@@ -1,4 +1,5 @@
 """Shared pytest options."""
+
 from __future__ import annotations
 
 

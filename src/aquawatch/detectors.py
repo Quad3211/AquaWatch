@@ -17,6 +17,7 @@ To add a detector: write a class with these methods, give it a unique
 ``name`` and ``column``, and append it to ``REGISTRY``. The pipeline, the
 metrics, the evaluation report and the app pick it up automatically.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field

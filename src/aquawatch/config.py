@@ -3,6 +3,7 @@
 Owner: Nicholas Smalling (paths/cutoff) / Nickel Small (model hyperparameters)
 Team Lead keeps scope comments aligned with docs/STAGE0_SCOPE.md.
 """
+
 from __future__ import annotations
 
 from pathlib import Path

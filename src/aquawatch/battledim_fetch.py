@@ -8,6 +8,7 @@ already-downloaded files that match are skipped.
 
     aquawatch battledim fetch
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -101,4 +102,3 @@ def fetch() -> int:
         return 1
     print(f"\nAll {len(FILES)} files verified in {OUT_DIR}")
     return 0
-

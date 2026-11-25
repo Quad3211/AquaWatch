@@ -2,6 +2,7 @@
 
 Kept so older docs and habits still work; prefer the `aquawatch` command.
 """
+
 import sys
 
 from aquawatch.cli import main

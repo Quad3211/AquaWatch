@@ -1,4 +1,5 @@
 """Tests for typed settings (configs/default.toml + environment overrides)."""
+
 from __future__ import annotations
 
 from pathlib import Path

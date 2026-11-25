@@ -15,6 +15,7 @@ explicit and free of I/O.
 - ``RunInfo``: what produced a set of results (data range, settings
   fingerprint, code version), so results can always be traced and repeated.
 """
+
 from __future__ import annotations
 
 import re
@@ -150,11 +151,19 @@ def code_version() -> str:
     try:
         sha = subprocess.run(
             ["git", "rev-parse", "HEAD"],
-            cwd=PROJECT_ROOT, capture_output=True, text=True, check=True, timeout=5,
+            cwd=PROJECT_ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=5,
         ).stdout.strip()
         dirty = subprocess.run(
             ["git", "status", "--porcelain", "--untracked-files=no"],
-            cwd=PROJECT_ROOT, capture_output=True, text=True, check=True, timeout=5,
+            cwd=PROJECT_ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=5,
         ).stdout.strip()
         return sha + ("+dirty" if dirty else "")
     except (OSError, subprocess.SubprocessError):

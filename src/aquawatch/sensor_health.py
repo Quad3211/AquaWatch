@@ -26,6 +26,7 @@ still raised, and the reading is shown as suspect.
 Runs are measured on training and test data together (``flatline_mask`` on the
 concatenated frame), so a meter that sticks just before the cutoff is caught.
 """
+
 from __future__ import annotations
 
 import pandas as pd

@@ -16,6 +16,7 @@ With only a handful of events, every rate gets an exact (Clopper-Pearson) 95%
 confidence interval so small samples are not over-read. Point-wise numbers are
 kept as secondary columns for comparison with earlier results.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -46,9 +47,7 @@ def episode_ids(scored: pd.DataFrame, pred_col: str, *, max_gap_hours: int = 1) 
     Flags in the same zone no more than ``max_gap_hours`` apart share an episode,
     so a leak flagged for 10 straight hours is one alarm, not ten.
     """
-    flagged = scored.loc[scored[pred_col] == 1, ["zone", "timestamp"]].sort_values(
-        ["zone", "timestamp"]
-    )
+    flagged = scored.loc[scored[pred_col] == 1, ["zone", "timestamp"]].sort_values(["zone", "timestamp"])
     ids = pd.Series(np.nan, index=scored.index)
     if flagged.empty:
         return ids
@@ -58,9 +57,7 @@ def episode_ids(scored: pd.DataFrame, pred_col: str, *, max_gap_hours: int = 1) 
     return ids
 
 
-def alarm_episodes(
-    scored: pd.DataFrame, pred_col: str, *, max_gap_hours: int = 1
-) -> pd.DataFrame:
+def alarm_episodes(scored: pd.DataFrame, pred_col: str, *, max_gap_hours: int = 1) -> pd.DataFrame:
     """Group flagged hours into episodes per zone: zone, start, end, hours."""
     ids = episode_ids(scored, pred_col, max_gap_hours=max_gap_hours)
     flagged = scored.loc[ids.notna(), ["zone", "timestamp"]].assign(episode=ids.dropna())
@@ -68,8 +65,12 @@ def alarm_episodes(
         return pd.DataFrame(columns=["zone", "start", "end", "hours"])
     return (
         flagged.groupby("episode")
-        .agg(zone=("zone", "first"), start=("timestamp", "min"), end=("timestamp", "max"),
-             hours=("timestamp", "size"))
+        .agg(
+            zone=("zone", "first"),
+            start=("timestamp", "min"),
+            end=("timestamp", "max"),
+            hours=("timestamp", "size"),
+        )
         .reset_index(drop=True)
     )
 
@@ -293,8 +294,6 @@ def random_alarms(scored: pd.DataFrame, like_col: str, seed: int = RANDOM_BASELI
         start = rng.integers(0, max(1, len(rows) - length + 1))
         out.loc[rows[start : start + length]] = 1
     return out
-
-
 
 
 def compare_methods(

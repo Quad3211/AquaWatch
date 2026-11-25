@@ -2,8 +2,10 @@
 
 Owner: Nicholas Smalling
 """
+
 from __future__ import annotations
 
+from io import BytesIO
 from pathlib import Path
 from typing import IO
 
@@ -69,3 +71,16 @@ def chronological_split(df: pd.DataFrame, cutoff: str | None = None) -> tuple[pd
             f"This dataset covers {df['timestamp'].min()} to {df['timestamp'].max()}."
         )
     return train, test
+
+
+def load_uploaded_csv(data: bytes) -> pd.DataFrame:
+    """Load a CSV uploaded in the app (raw bytes) with the same checks as a file."""
+    return load_sensor_csv(BytesIO(data))
+
+
+def midpoint_cutoff(df: pd.DataFrame) -> str:
+    """A default train/test cutoff for unfamiliar data: the date halfway through it."""
+    start, end = df["timestamp"].min(), df["timestamp"].max()
+    if start == end:
+        raise DataError("The data covers a single moment; it needs a time range to train and test on.")
+    return str((start + (end - start) / 2).normalize().date())

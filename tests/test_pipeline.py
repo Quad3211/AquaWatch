@@ -2,6 +2,7 @@
 
 Owner: Nicholas Smalling
 """
+
 from __future__ import annotations
 
 from io import BytesIO
@@ -176,9 +177,7 @@ def test_event_alerts_one_row_per_episode(scored):
     assert list(events["priority"]) == list(range(1, len(events) + 1))
     assert (events["est_volume_lost_units"] >= 0).all()
     assert events["est_volume_lost_units"].is_monotonic_decreasing
-    assert set(events["matches_injected_leak"]) <= {"no (false alarm)"} | set(
-        scored["simulated_event_id"]
-    )
+    assert set(events["matches_injected_leak"]) <= {"no (false alarm)"} | set(scored["simulated_event_id"])
 
 
 def test_merging_alarms_gives_fewer_incidents(scored):
@@ -202,3 +201,23 @@ def test_app_runs_for_every_dataset_and_detector():
             assert not at.exception, (dataset, detector)
             assert not at.error, (dataset, detector, [e.value for e in at.error])
             assert len(at.metric) == 4
+
+
+def test_uploaded_csv_and_default_cutoff():
+    """The app's upload path: bytes in, validated frame out, cutoff halfway through."""
+    from aquawatch import config
+    from aquawatch.data_loader import load_uploaded_csv, midpoint_cutoff
+    from aquawatch.errors import DataError
+
+    raw = config.DEMO_CSV.read_bytes()
+    df = load_uploaded_csv(raw)
+    assert len(df) == 1680
+    cutoff = midpoint_cutoff(df)
+    train, test = chronological_split(df, cutoff)
+    assert len(train) > 0 and len(test) > 0
+    with pytest.raises(DataError, match="time range"):
+        midpoint_cutoff(df.head(1))
+    with pytest.raises(DataError, match="failed validation"):
+        load_uploaded_csv(
+            raw.replace(b"Zone 01", b"", 1).replace(b"\n", b"\n2026-11-01 00:00:00,Zone 01,-5,1,0,0,\n", 1)
+        )

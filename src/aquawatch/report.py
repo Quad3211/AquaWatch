@@ -6,6 +6,7 @@ The data is simulated. Training never reads the labels; they are used only to
 score the held-out window. Results are reported per leak event, with exact 95%
 confidence intervals and a same-budget random baseline.
 """
+
 from __future__ import annotations
 
 import sys
@@ -70,16 +71,20 @@ def evaluate(
     print(f"Rows: {len(df):,} | training window: {len(train):,} rows | held out from {cutoff}: {len(test):,}")
     if events_are_truth and events is not None:
         new = events[(events["start"] >= scored["timestamp"].min())]
-        print(f"Leaks starting in the test window: {len(new)} (an alarm must come within "
-              f"{detect_within} h of a leak's start to count; later alarms on it are repeats)")
+        print(
+            f"Leaks starting in the test window: {len(new)} (an alarm must come within "
+            f"{detect_within} h of a leak's start to count; later alarms on it are repeats)"
+        )
     else:
         print(f"Held-out injected leak events: {len(true_events(scored))}")
         if detect_within is not None:
             print(f"A leak counts as caught only if an alarm comes within {detect_within:g} h of its start.")
     suspect, dead = int(scored["sensor_suspect"].sum()), int(scored["sensor_dead"].sum())
     if suspect:
-        print(f"Sensor health: {suspect:,} readings look like a sensor fault (flat-lined, zero or no "
-              f"baseline); no leak alarms were raised on the {dead:,} dead ones.")
+        print(
+            f"Sensor health: {suspect:,} readings look like a sensor fault (flat-lined, zero or no "
+            f"baseline); no leak alarms were raised on the {dead:,} dead ones."
+        )
     print(f"Held-out injected anomaly readings: {int(test['simulated_leak_label'].sum())}")
     print()
     print(table.to_string(index=False))
@@ -100,4 +105,3 @@ def evaluate(
         "\nWhere events are few, the confidence intervals are wide; do not read small differences"
         " as real."
     )
-

@@ -4,6 +4,7 @@ Refactors must leave every detector's event-level counts identical. If a change
 is *meant* to move results (a new feature, a new threshold), re-run with
 ``pytest tests/test_golden_results.py --update-golden`` and explain why in the PR.
 """
+
 from __future__ import annotations
 
 import json

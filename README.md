@@ -37,7 +37,7 @@ If `aquawatch` or `streamlit` is not recognized (the Python Scripts folder may n
 
 `aquawatch train` writes `models/isolation_forest.skops` plus `model_metadata.json`. Model files are generated, not committed (pickle/joblib files can run code when loaded). If they are missing, the app trains in-session instead.
 
-Optional checks:
+Optional checks (development tools: `pip install -r requirements-dev.txt`, or `uv sync`):
 
 ```bash
 python -m pytest -v

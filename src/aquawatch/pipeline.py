@@ -5,6 +5,7 @@ Owner: Nickel Small / Nicholas Smalling
 Builds the deviation features once (static or rolling expected-flow profile),
 then fits and runs every detector in ``aquawatch.detectors.REGISTRY``.
 """
+
 from __future__ import annotations
 
 import pandas as pd
@@ -27,9 +28,7 @@ def build_features(
     return add_deviations(train, profile), add_deviations(test, profile)
 
 
-def score_all_methods(
-    train: pd.DataFrame, test: pd.DataFrame, profile_by: str | None = None
-) -> pd.DataFrame:
+def score_all_methods(train: pd.DataFrame, test: pd.DataFrame, profile_by: str | None = None) -> pd.DataFrame:
     """Fit every registered detector on the training window (no labels) and add its
     alarms (``<column>``) and scores (``<column>_score``) to the test rows.
 

@@ -5,6 +5,7 @@ ValueError keep working. The ``aquawatch`` command turns DataError (and
 SettingsError, FileNotFoundError) into a one-line message; any other
 exception is a bug and keeps its full traceback.
 """
+
 from __future__ import annotations
 
 

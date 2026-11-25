@@ -15,6 +15,7 @@ hash of everything that affects results, printed with every evaluation.
 Uses only the standard library (dataclasses + tomllib); see
 docs/adr/0001-settings-format.md.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -85,8 +86,10 @@ class NightFlowSettings:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "hours", tuple(self.hours))
-        _check(len(self.hours) > 0 and all(0 <= h <= 23 for h in self.hours),
-               "night_flow.hours must be hours of the day (0-23)")
+        _check(
+            len(self.hours) > 0 and all(0 <= h <= 23 for h in self.hours),
+            "night_flow.hours must be hours of the day (0-23)",
+        )
         _check(self.lookback_nights >= 3, "night_flow.lookback_nights must be at least 3")
         _check(self.k_mad >= 0 and self.min_rise >= 0, "night_flow thresholds must be non-negative")
 
@@ -177,7 +180,7 @@ def _apply_env(data: dict[str, Any], environ: dict[str, str]) -> None:
     for name, raw in environ.items():
         if not name.startswith(ENV_PREFIX):
             continue
-        path = [part.lower() for part in name[len(ENV_PREFIX):].split("__")]
+        path = [part.lower() for part in name[len(ENV_PREFIX) :].split("__")]
         _check(len(path) >= 2, f"{name}: use {ENV_PREFIX}<SECTION>__<KEY>")
         node = data
         for part in path[:-1]:

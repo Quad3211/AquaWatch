@@ -18,6 +18,7 @@ the test window.
    evidence over hours, so it suits leaks (lasting level shifts) better than
    rules that judge each hour on its own.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -141,9 +142,7 @@ def cusum_statistic(
     k = get_settings().cusum.k if k is None else k
     h = get_settings().cusum.h if h is None else h
     scales = robust_scales(train_features)
-    both = pd.concat(
-        [train_features.assign(_test=False), frame.assign(_test=True)], ignore_index=False
-    )
+    both = pd.concat([train_features.assign(_test=False), frame.assign(_test=True)], ignore_index=False)
     both = both.reset_index(names="_orig_index").sort_values(["zone", "timestamp"])
     both["_z"] = _robust_z(both, scales, "flow_rel_dev").to_numpy()
 

@@ -156,9 +156,10 @@ tests/  docs/  scripts/ (thin wrappers only)
   ```python
   class Detector(Protocol):
       name: str
-      def fit(self, history: pd.DataFrame) -> "Detector": ...      # label-free
-      def score(self, frame: pd.DataFrame) -> pd.Series: ...        # higher = more unusual
-      def alarms(self, frame: pd.DataFrame) -> pd.Series: ...       # 0/1, uses its own threshold
+
+      def fit(self, history: pd.DataFrame) -> "Detector": ...  # label-free
+      def score(self, frame: pd.DataFrame) -> pd.Series: ...  # higher = more unusual
+      def alarms(self, frame: pd.DataFrame) -> pd.Series: ...  # 0/1, uses its own threshold
   ```
   - Wrap the flow rule, flow + pressure rule, night flow, CUSUM and Isolation Forest as classes in `detection/detectors/`.
   - Register each in `detection/registry.py`, and make the pipeline loop over the registry.

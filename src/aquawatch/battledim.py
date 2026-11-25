@@ -20,6 +20,7 @@ How it maps onto AquaWatch:
   per-row label, is the ground truth for scoring. ``simulated_leak_label`` is 1
   whenever any leak is releasing water.
 """
+
 from __future__ import annotations
 
 import re
@@ -70,9 +71,7 @@ def convert(raw_dir: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Return (hourly readings, events) built from the downloaded BattLeDIM files."""
     flows = pd.concat([_read_scada(raw_dir / f"{y}_SCADA_Flows.csv") for y in (2018, 2019)])
     pressures = pd.concat([_read_scada(raw_dir / f"{y}_SCADA_Pressures.csv") for y in (2018, 2019)])
-    leak_flows = pd.concat(
-        [_read_scada(raw_dir / f"{y}_Leakages.csv") for y in (2018, 2019)]
-    ).fillna(0.0)
+    leak_flows = pd.concat([_read_scada(raw_dir / f"{y}_Leakages.csv") for y in (2018, 2019)]).fillna(0.0)
 
     # Hours with no readings (gaps in the source) are dropped, not filled.
     inflow = flows[list(INFLOW_PIPES)].sum(axis=1).resample("h").mean().dropna()

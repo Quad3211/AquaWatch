@@ -2,6 +2,7 @@
 
 Owner: Nickel Small (logic) / Jason Williams (UI consumption)
 """
+
 from __future__ import annotations
 
 import pandas as pd
@@ -53,9 +54,7 @@ def build_alert_table(
 
     alerts["reason"] = alerts.apply(_reason, axis=1)
     alerts["next_step"] = "Check logger quality; request field verification."
-    alerts["source"] = source or (
-        "Isolation Forest" if prediction_col == "ai_pred" else "Simple flow rule"
-    )
+    alerts["source"] = source or ("Isolation Forest" if prediction_col == "ai_pred" else "Simple flow rule")
 
     # Stronger combined deviation sorts higher (more urgent review).
     flow_up = alerts["flow_rel_dev"].clip(lower=0)
@@ -165,9 +164,19 @@ def incidents_to_frame(
     """The table shown in the app: one row per incident, ranked by estimated volume."""
     volume_col = f"est_volume_lost_{flow_unit.split('/')[0]}"
     columns = [
-        "priority", "zone", "start", "end", "hours", f"extra_flow_{flow_unit}", volume_col,
-        "peak_flow_rise", f"pressure_change_{pressure_unit}", "reason", "matches_injected_leak",
-        "status", "next_step",
+        "priority",
+        "zone",
+        "start",
+        "end",
+        "hours",
+        f"extra_flow_{flow_unit}",
+        volume_col,
+        "peak_flow_rise",
+        f"pressure_change_{pressure_unit}",
+        "reason",
+        "matches_injected_leak",
+        "status",
+        "next_step",
     ]
     rows = []
     for priority, inc in enumerate(incidents, start=1):

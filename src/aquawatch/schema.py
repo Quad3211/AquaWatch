@@ -7,6 +7,7 @@ quietly wrong alerts later. ``flow_index`` and ``pressure_index`` stay unitless
 on purpose: the synthetic data is not calibrated to litres/second or metres,
 and renaming the columns to units would imply a calibration we do not have.
 """
+
 from __future__ import annotations
 
 import pandas as pd

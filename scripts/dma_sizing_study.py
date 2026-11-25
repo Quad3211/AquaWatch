@@ -1,4 +1,5 @@
 """Same as `aquawatch sizing`. Kept so older docs and habits still work."""
+
 import sys
 
 from aquawatch.cli import main

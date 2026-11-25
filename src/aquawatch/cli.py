@@ -10,6 +10,7 @@
 Heavy imports happen inside each command, so `aquawatch --help` stays fast and
 commands that need optional packages (WNTR) only fail when actually used.
 """
+
 from __future__ import annotations
 
 import argparse

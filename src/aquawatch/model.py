@@ -2,6 +2,7 @@
 
 Owner: Nickel Small
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -244,8 +245,7 @@ def load_model_artifacts(
     metadata_path = metadata_path or config.MODEL_METADATA_PATH
     if not model_path.exists() or not profile_path.exists():
         raise FileNotFoundError(
-            f"Saved artifacts not found. Run: aquawatch train "
-            f"(looked for {model_path} and {profile_path})"
+            f"Saved artifacts not found. Run: aquawatch train (looked for {model_path} and {profile_path})"
         )
     if metadata_path.exists():
         saved_with = json.loads(metadata_path.read_text()).get("sklearn_version")
