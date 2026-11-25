@@ -62,6 +62,28 @@ What this shows:
 - **The simulator flatters simple methods.** Its demand has no holidays, events or seasonal drift, and every leak is a clean step or ramp. Real data will be harder for all methods. Treat this ranking as a hypothesis to test on NWC data, not a result.
 - **Hour of week** (`--profile hour_of_week`) gives Isolation Forest similar recall but more false alarms (2.0 per zone-week), because 60 days leaves only about 8 readings per cell. It should help once there is a year of history.
 
+## Walk-forward results (`aquawatch evaluate --dataset simulated --protocol walk-forward`)
+There are 4 folds. Each trains on everything before its validation window, then has 14 days of validation and 14 days of test, moving forward 14 days per fold (first test window 2026-07-27, last ends 2026-09-21). That gives 25 test leaks in total. "Tuned" thresholds were chosen on each validation window **without labels**: the most sensitive threshold with at most 1 alarm per zone-week ([ADR 0002](../../docs/adr/0002-label-free-threshold-tuning.md)). "Default" means the fixed thresholds in `configs/default.toml`.
+
+| Method | Thresholds | Leaks caught (95% CI) | Per-fold recall | Real / judged alarms | False alarms per zone-week | Median h to detect |
+|---|---|---|---|---|---|---|
+| **CUSUM on flow** | tuned | **24/25 (80–100%)** | 83–100% | 30/41 | 0.28 | 2 |
+| CUSUM on flow | default | 25/25 (86–100%) | 100% | 26/51 | 0.62 | 2 |
+| Flow + pressure rule | default | 22/25 (69–97%) | 83–100% | 134/151 | 0.42 | 1 |
+| Isolation Forest | default | 22/25 (69–97%) | 75–100% | 124/156 | 0.80 | 2 |
+| Night flow (MNF) | default | 21/25 (64–95%) | 78–100% | 36/36 | 0.00 | 2 |
+| Night flow (MNF) | tuned | 14/25 (35–76%) | 25–83% | 21/21 | 0.00 | 2 |
+| Simple flow rule | tuned | 13/25 (31–72%) | 44–67% | 19/19 | 0.00 | 1 |
+| Isolation Forest | tuned | 11/25 (24–65%) | 25–50% | 40/44 | 0.10 | 13 |
+| Flow + pressure rule | tuned | 9/25 (18–57%) | 0–67% | 21/21 | 0.00 | 3 |
+| Random (same budget as tuned Isolation Forest) | — | 7/25 (12–49%) | 0–44% | 7/43 | 0.90 | 27 |
+
+What this shows:
+- **CUSUM is the strongest detector across time**, not only on one split. With thresholds tuned without labels to 1 alarm per zone-week, it catches 24 of 25 leaks with 0.28 false alarms per zone-week, a median of 2 hours after the leak starts.
+- **The budget is strict here.** It counts every alarm, including those caused by real leaks in the validation window, and this simulation has a leak in each zone roughly every two weeks. So for most detectors the tuned thresholds come out stricter than the defaults: fewer false alarms, more missed leaks. The budget is a policy choice for the utility; try `--budget 2`.
+- **Single splits can mislead.** Per-fold recall ranges widely (for example 25–50% for tuned Isolation Forest, 0–67% for the tuned flow + pressure rule), which is why the pooled counts with confidence intervals are the numbers to quote.
+- Every detector beats random alarms with the same budget on both leaks caught and false alarms.
+
 ## Known limits (not yet simulated)
 - Intermittent supply and lock-off schedules, which are common in Jamaica
 - Theft or unexplained consumption

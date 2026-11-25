@@ -39,6 +39,7 @@ python -m ruff check .                                # lint (must pass)
 python -m mypy                                        # type check src/aquawatch (must pass)
 python -m pytest -q --cov                             # tests + coverage (CI fails below 80%)
 aquawatch evaluate --dataset simulated                # compare every detector on the 120-day simulation
+aquawatch evaluate --dataset simulated --protocol walk-forward  # repeated folds, thresholds tuned to an alarm budget
 aquawatch evaluate --dataset battledim --profile rolling   # needs `aquawatch battledim fetch` + `prepare`
 aquawatch sizing analyse                              # DMA sizing study (docs/DMA_SIZING.md)
 aquawatch train                                       # recreate models/ locally

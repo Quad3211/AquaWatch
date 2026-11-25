@@ -31,8 +31,20 @@ def _iso_date(value: str) -> str:
 
 
 def _evaluate(args: argparse.Namespace) -> int:
-    from aquawatch.report import evaluate
+    from aquawatch.report import evaluate, evaluate_walk_forward
 
+    if args.protocol == "walk-forward":
+        evaluate_walk_forward(
+            args.dataset,
+            profile=args.profile,
+            detect_within=args.detect_within,
+            budget=args.budget,
+            train_days=args.train_days,
+            val_days=args.val_days,
+            test_days=args.test_days,
+            step_days=args.step_days,
+        )
+        return 0
     evaluate(args.dataset, cutoff=args.cutoff, profile=args.profile, detect_within=args.detect_within)
     return 0
 
@@ -120,6 +132,20 @@ def build_parser() -> argparse.ArgumentParser:
         help="Count a leak as caught only if an alarm starts within this many hours of it "
         "(default: no limit, or [datasets.<name>] detect_within_hours).",
     )
+    ev.add_argument(
+        "--protocol",
+        choices=["split", "walk-forward"],
+        default="split",
+        help="'split': one train/test cutoff (default). 'walk-forward': repeated folds with thresholds "
+        "tuned on a validation window to an alarm budget ([walk_forward] in configs/default.toml).",
+    )
+    ev.add_argument("--budget", type=float, help="Walk-forward: alarms per zone-week the tuning may allow.")
+    ev.add_argument(
+        "--train-days", type=int, help="Walk-forward: days of data before the first validation window."
+    )
+    ev.add_argument("--val-days", type=int, help="Walk-forward: validation window length in days.")
+    ev.add_argument("--test-days", type=int, help="Walk-forward: test window length in days.")
+    ev.add_argument("--step-days", type=int, help="Walk-forward: how far each fold moves forward, in days.")
     ev.set_defaults(func=_evaluate)
 
     tr = sub.add_parser("train", help="Train the demo Isolation Forest and save it to models/.")

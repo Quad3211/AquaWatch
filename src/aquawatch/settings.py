@@ -112,6 +112,24 @@ class SensorHealthSettings:
 
 
 @dataclass(frozen=True)
+class WalkForwardSettings:
+    train_days: int = 42
+    val_days: int = 14
+    test_days: int = 14
+    step_days: int = 14
+    alarm_budget_per_zone_week: float = 1.0
+
+    def __post_init__(self) -> None:
+        _check(
+            self.train_days >= 14 and self.val_days >= 7 and self.test_days >= 7 and self.step_days >= 1,
+            "walk_forward needs train_days >= 14, val_days >= 7, test_days >= 7, step_days >= 1",
+        )
+        _check(
+            self.alarm_budget_per_zone_week > 0, "walk_forward.alarm_budget_per_zone_week must be positive"
+        )
+
+
+@dataclass(frozen=True)
 class DatasetSettings:
     cutoff: str
     detect_within_hours: float | None = None
@@ -143,6 +161,7 @@ class Settings:
     night_flow: NightFlowSettings = field(default_factory=NightFlowSettings)
     cusum: CusumSettings = field(default_factory=CusumSettings)
     sensor_health: SensorHealthSettings = field(default_factory=SensorHealthSettings)
+    walk_forward: WalkForwardSettings = field(default_factory=WalkForwardSettings)
     datasets: dict[str, DatasetSettings] = field(default_factory=dict)
     app: AppSettings = field(default_factory=AppSettings)
 
@@ -164,6 +183,7 @@ SECTIONS = {
     "night_flow": NightFlowSettings,
     "cusum": CusumSettings,
     "sensor_health": SensorHealthSettings,
+    "walk_forward": WalkForwardSettings,
     "app": AppSettings,
 }
 

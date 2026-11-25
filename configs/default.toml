@@ -43,6 +43,16 @@ h = 8.0                   # alarm level (robust SDs)
 # changed at all for this many consecutive hours, or has no usable expected flow.
 flatline_hours = 6
 
+[walk_forward]
+# `aquawatch evaluate --protocol walk-forward`: train on everything before each
+# validation window, tune each detector's threshold on the validation window to
+# stay within the alarm budget (label-free), then score the next test window.
+train_days = 42
+val_days = 14
+test_days = 14
+step_days = 14
+alarm_budget_per_zone_week = 1.0   # alarms crews can check per zone per week
+
 # Train before `cutoff`, hold out from it onward.
 [datasets.demo]
 cutoff = "2026-11-11"
