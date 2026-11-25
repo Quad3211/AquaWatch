@@ -25,12 +25,25 @@ SIM_CSV = SIM_DIR / "aquawatch_wntr_readings.csv"
 SIM_EVENTS_CSV = SIM_DIR / "aquawatch_wntr_events.csv"
 SIM_TRAIN_CUTOFF = "2026-07-31"  # 60 days to learn from, 60 days held out
 
+# BattLeDIM 2020 benchmark (scripts/fetch_battledim.py + prepare_battledim.py).
+# Downloaded and derived files stay in data/external/ (gitignored).
+BATTLEDIM_DIR = DATA_DIR / "external" / "battledim"
+BATTLEDIM_CSV = BATTLEDIM_DIR / "aquawatch_battledim_hourly.csv"
+BATTLEDIM_EVENTS_CSV = BATTLEDIM_DIR / "aquawatch_battledim_events.csv"
+BATTLEDIM_TRAIN_CUTOFF = "2019-01-01"  # train on 2018, test on 2019, as in the competition
+# Leaks there often run for months, so an alarm only "detects" a leak within
+# this many hours of its start; later alarms on it are repeats.
+BATTLEDIM_DETECT_WITHIN_HOURS = 168
+
 # Chronological split: train before this timestamp, hold out from this day onward
 TRAIN_CUTOFF = "2026-11-11"
 
 # Expected-flow profile: "hour" (zone x hour of day), "day_type" (zone x
 # weekday/weekend x hour) or "hour_of_week" (zone x day of week x hour).
 PROFILE_BY = "day_type"
+
+# Window for the opt-in "rolling" profile (src.model.add_rolling_deviations).
+ROLLING_PROFILE_DAYS = 28
 
 # Baseline
 FLOW_RULE_THRESHOLD = 0.25
@@ -56,6 +69,11 @@ ROBUST_Z_CUTOFF = 3.5
 MODEL_PATH = MODELS_DIR / "isolation_forest.skops"  # generated, not committed
 MODEL_METADATA_PATH = MODELS_DIR / "model_metadata.json"
 PROFILE_PATH = MODELS_DIR / "zone_hour_profile.csv"
+
+# App: alarms in the same zone less than this many hours apart are shown as one
+# incident in the Alerts tab (metrics still count raw 1-hour-gap episodes).
+INCIDENT_MERGE_HOURS = 12
+DEFAULT_APP_DETECTOR = "Flow + pressure rule"
 
 # UI honesty banner (guide §14.3 / §15)
 SIMULATED_DATA_BANNER = "Research Prototype: Simulated Utility Data"

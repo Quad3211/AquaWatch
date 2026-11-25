@@ -54,6 +54,20 @@ uv run pre-commit install    # optional: lint + large-file check before each com
 
 If you change dependencies, edit both `pyproject.toml` and `requirements.txt`, then run `uv lock`. GitHub Actions (`.github/workflows/ci.yml`) runs lock check, lint, tests, train + evaluate and `pip-audit` on every pull request. Dependabot opens weekly dependency PRs.
 
+## Using the app
+
+`python -m streamlit run app.py`, then in the sidebar:
+
+- **Dataset:** the 120-day simulated network (default), the original 14-day demo CSV, or your own upload (you pick the training cutoff).
+- **Detector:** simple flow rule, flow + pressure rule (default), night flow, CUSUM or Isolation Forest.
+
+Tabs:
+
+- **Overview:** headline numbers and which zones to check first.
+- **Alerts:** incidents ranked by estimated extra water, each with a plain-language reason. Alarms less than 12 h apart in a zone are merged into one incident.
+- **Chart:** measured vs expected flow and pressure, with injected leaks shaded and alarms marked.
+- **Metrics:** every detector scored on the same window.
+
 ## Simulated dataset (WNTR)
 
 `data/simulated/` holds a 120-day, 5-zone dataset with 40 leaks, produced by a hydraulic model (WNTR). Evaluate on it with:
@@ -63,6 +77,22 @@ python scripts/AquaWatch_Evaluate.py --dataset simulated
 ```
 
 See [data/simulated/DATASHEET.md](data/simulated/DATASHEET.md) for how it was made, how to regenerate it, and its limits.
+
+## Benchmark: BattLeDIM 2020
+
+To test on the standard public leak-detection benchmark (two years, 33 leaks, CC BY 4.0), run `scripts/fetch_battledim.py` then `scripts/prepare_battledim.py`. See [docs/BATTLEDIM.md](docs/BATTLEDIM.md) for how the data is mapped, how it is scored, and the results.
+
+## DMA sizing study
+
+How small must a metered zone be for AquaWatch to find leaks? Simulated zones of 10–200 m³/h with leaks of 2–10 m³/h give a rule of thumb: keep zones to about **5 × the smallest leak you need to catch within a day**. See [docs/DMA_SIZING.md](docs/DMA_SIZING.md), or the app's Insights tab.
+
+## Cursor agent
+
+To let the Cursor CLI agent work on the repo with the project's limits, put `CURSOR_API_KEY` in `.env` (copy `.env.example`) and run `scripts/cursor_agent.ps1` or `scripts/cursor_agent.sh`. See [docs/CURSOR_AGENT.md](docs/CURSOR_AGENT.md).
+
+## Building it out
+
+[docs/BUILD_GUIDE.md](docs/BUILD_GUIDE.md) lays out the path from this prototype to a pilot-ready system, step by step: package layout, a detector interface, walk-forward evaluation, supply cuts, storage, a scoring job, an incident workflow, an API, deployment and the pilot runbook.
 
 ## How results are measured
 

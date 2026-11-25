@@ -1,0 +1,12 @@
+---
+globs: app.py, src/alerts.py
+alwaysApply: false
+---
+
+When you change the Streamlit app:
+
+- Keep the simulated-data banner and the line "an alert means investigate, not confirmed".
+- Do not add login, databases, hosting or external API calls. Those are out of scope for this phase.
+- Every detector must work with both built-in datasets. `tests/test_pipeline.py::test_app_runs_for_every_dataset_and_detector` checks this.
+- Use `width="stretch"`, not the deprecated `use_container_width`.
+- Show units from the dataset settings: m³/h and m for the simulated data, unitless for the demo CSV.

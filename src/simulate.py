@@ -68,6 +68,18 @@ class SimConfig:
     flow_noise_frac: float = 0.01
     pressure_noise_m: float = 0.15
     zone_names: list[str] = field(default_factory=list)
+    # --- Options for the DMA sizing study (defaults keep the original dataset identical) ---
+    # Customer-based demand noise: if set, each zone has mean_inflow / (litres per
+    # customer per day) customers. Hour-to-hour randomness then shrinks as a zone
+    # gets bigger (many households average out), while day-to-day changes such as
+    # weather stay shared by the whole zone. If None, the original fixed noise is used.
+    liters_per_customer_day: float | None = None
+    household_hourly_cv: float = 1.0  # variability of one household's hourly use
+    # Absolute leak sizes (m³/h at 50 m pressure), used in turn per zone, instead
+    # of sizes drawn as a fraction of zone inflow.
+    leak_sizes_m3h: tuple[float, ...] | None = None
+    # Scale pipe diameters with zone size so bigger zones are not throttled.
+    scale_pipes: bool = False
 
     def __post_init__(self) -> None:
         if not self.zone_names:
@@ -89,8 +101,21 @@ class Zone:
     mean_inflow_m3h: float
 
 
-def demand_multipliers(cfg: SimConfig, rng: np.random.Generator) -> np.ndarray:
-    """Hourly demand multipliers for one node over the whole simulation."""
+def demand_multipliers(
+    cfg: SimConfig,
+    rng: np.random.Generator,
+    *,
+    customers: float | None = None,
+    zone_day: np.ndarray | None = None,
+    zone_hour: np.ndarray | None = None,
+) -> np.ndarray:
+    """Hourly demand multipliers for one node over the whole simulation.
+
+    With ``customers`` (sizing study), hour-to-hour noise has coefficient of
+    variation ``household_hourly_cv / sqrt(customers)``, and the day factor and
+    a small hourly factor are shared by the whole zone (``zone_day``,
+    ``zone_hour``).
+    """
     start = pd.Timestamp(cfg.start)
     hours = pd.date_range(start, periods=cfg.hours, freq="h")
     weekend = hours.dayofweek >= 5
@@ -98,6 +123,10 @@ def demand_multipliers(cfg: SimConfig, rng: np.random.Generator) -> np.ndarray:
     # Weekends: the morning peak comes an hour later and use is a little higher.
     shifted = np.where(weekend, (hour_of_day - 1) % 24, hour_of_day)
     base = DAILY_PROFILE[shifted] * np.where(weekend, 1.05, 1.0)
+    if customers is not None:
+        sigma = cfg.household_hourly_cv / np.sqrt(max(customers, 1.0))
+        own_noise = rng.lognormal(0.0, sigma, cfg.hours)
+        return np.clip(base * zone_day * zone_hour * own_noise, 0.05, None)
     day_factor = np.repeat(rng.normal(1.0, 0.05, cfg.days), 24)
     hour_noise = rng.lognormal(0.0, 0.08, cfg.hours)
     return np.clip(base * day_factor * hour_noise, 0.05, None)
@@ -120,12 +149,24 @@ def build_network(cfg: SimConfig, rng: np.random.Generator):
 
         names: list[str] = []
         n_nodes = cfg.grid * cfg.grid
-        per_node_m3s = cfg.zone_mean_inflow_m3h[z] / SECONDS_PER_HOUR / n_nodes
+        mean_inflow = cfg.zone_mean_inflow_m3h[z]
+        per_node_m3s = mean_inflow / SECONDS_PER_HOUR / n_nodes
+        noise_args = {}
+        if cfg.liters_per_customer_day is not None:
+            zone_customers = mean_inflow * 24 * 1000 / cfg.liters_per_customer_day
+            noise_args = {
+                "customers": zone_customers / n_nodes,
+                "zone_day": np.repeat(rng.normal(1.0, 0.05, cfg.days), 24),
+                "zone_hour": rng.lognormal(0.0, 0.02, cfg.hours),
+            }
+        size_scale = np.sqrt(mean_inflow / 50.0) if cfg.scale_pipes else 1.0
+        grid_d = float(np.clip(0.15 * size_scale, 0.08, 0.40))
+        inlet_d = float(np.clip(0.25 * size_scale, 0.12, 0.60))
         for i in range(cfg.grid):
             for j in range(cfg.grid):
                 node = f"Z{z + 1}_{i}{j}"
                 pattern = f"pat_{node}"
-                wn.add_pattern(pattern, demand_multipliers(cfg, rng).tolist())
+                wn.add_pattern(pattern, demand_multipliers(cfg, rng, **noise_args).tolist())
                 elevation = cfg.zone_elevations_m[z] + rng.uniform(0, 6) + 1.5 * (i + j)
                 wn.add_junction(
                     node,
@@ -140,12 +181,12 @@ def build_network(cfg: SimConfig, rng: np.random.Generator):
                 here = f"Z{z + 1}_{i}{j}"
                 if j + 1 < cfg.grid:
                     wn.add_pipe(f"P_{here}_r", here, f"Z{z + 1}_{i}{j + 1}", length=250,
-                                diameter=0.15, roughness=100)
+                                diameter=grid_d, roughness=100)
                 if i + 1 < cfg.grid:
                     wn.add_pipe(f"P_{here}_d", here, f"Z{z + 1}_{i + 1}{j}", length=250,
-                                diameter=0.15, roughness=100)
+                                diameter=grid_d, roughness=100)
         inlet = f"INLET_Z{z + 1}"
-        wn.add_pipe(inlet, trunk, f"Z{z + 1}_00", length=600, diameter=0.25, roughness=110)
+        wn.add_pipe(inlet, trunk, f"Z{z + 1}_00", length=600, diameter=inlet_d, roughness=110)
         far = f"Z{z + 1}_{cfg.grid - 1}{cfg.grid - 1}"
         zones.append(Zone(cfg.zone_names[z], inlet, far, names, cfg.zone_mean_inflow_m3h[z]))
 
@@ -193,7 +234,11 @@ def plan_leaks(cfg: SimConfig, zones: list[Zone], rng: np.random.Generator) -> p
             # Leave at least a day of normal flow at the end of each slot.
             duration = min(duration, slot - 24)
             t = slot_start + int(rng.integers(0, slot - 24 - duration + 1))
-            size_frac = float(np.exp(rng.uniform(np.log(lo), np.log(hi))))
+            if cfg.leak_sizes_m3h:
+                leak_m3h = cfg.leak_sizes_m3h[k % len(cfg.leak_sizes_m3h)]
+                size_frac = leak_m3h / zone.mean_inflow_m3h
+            else:
+                size_frac = float(np.exp(rng.uniform(np.log(lo), np.log(hi))))
             rows.append(
                 {
                     "zone": zone.name,

@@ -69,6 +69,44 @@ def build_zone_hour_profile(train: pd.DataFrame, by: str | None = None) -> pd.Da
     )
 
 
+def add_rolling_deviations(
+    history: pd.DataFrame, frame: pd.DataFrame, days: int | None = None
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Deviation features against a *rolling* baseline (profile ``"rolling"``).
+
+    Expected flow/pressure for each zone, day type and hour is the median of
+    the same slot over the previous ``days`` days, using past data only. The
+    baseline follows slow drift (seasons, leaks that are known and accepted),
+    so detectors respond to *new* changes. A static profile learned once
+    instead flags every hour after demand or background leakage shifts.
+
+    Returns (history_features, frame_features). History rows without a full
+    window behind them are dropped.
+    """
+    days = days or config.ROLLING_PROFILE_DAYS
+    both = add_calendar_columns(
+        pd.concat([history.assign(_part="history"), frame.assign(_part="frame")], ignore_index=True)
+    ).sort_values(["zone", "day_type", "hour", "timestamp"])
+    window = f"{days}D"
+    for value, expected in (("flow_index", "expected_flow"), ("pressure_index", "expected_pressure")):
+        rolled = (
+            both.groupby(["zone", "day_type", "hour"], sort=False)
+            .rolling(window, on="timestamp", closed="left", min_periods=3)[value]
+            .median()
+        )
+        # ``both`` is sorted by the group keys then time, which is exactly the
+        # order the grouped rolling result comes back in, so assign by position.
+        both[expected] = rolled.to_numpy()
+    both = both.sort_values(["zone", "timestamp"])
+    both["flow_rel_dev"] = (both["flow_index"] - both["expected_flow"]) / both["expected_flow"]
+    both["pressure_dev"] = both["pressure_index"] - both["expected_pressure"]
+    hist = both[(both["_part"] == "history") & both["expected_flow"].notna()].drop(columns="_part")
+    out = both[both["_part"] == "frame"].drop(columns="_part")
+    if out["expected_flow"].isna().any():
+        raise ValueError("Not enough history before the test window for the rolling profile.")
+    return hist.reset_index(drop=True), out.reset_index(drop=True)
+
+
 def select_typical_rows(features: pd.DataFrame, z_cutoff: float | None = None) -> pd.DataFrame:
     """Drop training rows that already look abnormal, without using labels.
 

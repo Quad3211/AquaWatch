@@ -1,0 +1,18 @@
+---
+globs: src/model.py, src/baseline.py, src/pipeline.py, src/metrics.py, scripts/AquaWatch_Evaluate.py, config.py
+alwaysApply: false
+---
+
+When you change detection or evaluation code:
+
+- All training must be label-free.
+  - `fit_detector` and every baseline may read only flow, pressure, time and zone.
+  - Labels are for `src/metrics.py` scoring only.
+- Thresholds in `config.py` are fixed in advance. Do not change them to improve test results. Tuning needs a separate validation window, documented in the code and docs.
+- Every new detector must:
+  - be added to `METHODS` in `src/metrics.py`
+  - be computed in `src/pipeline.py::score_all_methods`
+  - get a unit test in `tests/test_baselines.py`
+  - be compared against the random baseline
+- Report results per event: events caught with a 95% CI, real/all alarms, false alarms per zone-week, and hours to detect.
+- After a change, run `python scripts/AquaWatch_Evaluate.py --dataset simulated` and update `data/simulated/DATASHEET.md` if the numbers moved.

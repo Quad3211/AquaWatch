@@ -49,7 +49,7 @@ A reading is labelled 1 while its zone has a leak releasing more than 0.0001 m³
 | Night flow (MNF) | 18/21 (64–97%) | 44/44 | 0.0 | 13 | 6/8 |
 | CUSUM on flow | 21/21 (84–100%) | 22/37 | 0.4 | 5 | 8/8 |
 | Isolation Forest | 18/21 (64–97%) | 128/167 | 0.9 | 6 | 6/8 |
-| Random (same rate as AI) | 18/21 (64–97%) | 55/357 | 7.0 | 10 | — |
+| Random (same alarm budget as AI) | 18/21 (64–97%) | 35/161 | 2.9 | 8 | — |
 
 What this shows:
 - **Isolation Forest does not beat the standard baselines here.**

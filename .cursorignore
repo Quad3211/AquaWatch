@@ -1,0 +1,13 @@
+# Keep the Cursor agent out of large, generated or irrelevant files.
+.venv/
+models/
+data/external/
+docs/pitch/
+uv.lock
+*.joblib
+*.skops
+
+# Secrets: the Cursor agent must never read these
+.env
+.env.*
+!.env.example

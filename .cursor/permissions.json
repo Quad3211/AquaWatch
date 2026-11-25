@@ -1,0 +1,30 @@
+{
+  // Cursor IDE auto-run allowlist for this repo (see Cursor's permissions.json docs).
+  // Cursor treats this as a convenience, not a security boundary.
+  // Commands that are not listed still need a click to approve.
+  "terminalAllowlist": [
+    "git status",
+    "git diff",
+    "git log",
+    "python -m pytest",
+    "python -m ruff check",
+    "uv run pytest",
+    "uv run ruff check",
+    "python scripts/AquaWatch_Evaluate.py",
+    "python scripts/train_and_save_model.py"
+  ],
+  // No MCP tools run without approval.
+  "mcpAllowlist": [],
+  "autoRun": {
+    "allow_instructions": [
+      "Read-only commands, running the test suite, lint, and the AquaWatch evaluation or training scripts."
+    ],
+    "block_instructions": [
+      "Installing, upgrading or removing packages (pip, uv add, uv sync, npm).",
+      "git commit, git push, git reset, git rebase, git checkout of other branches, or deleting branches.",
+      "Deleting or moving files (rm, del, Remove-Item, mv).",
+      "Downloading anything from the internet (curl, wget, Invoke-WebRequest, pip download).",
+      "Any command that connects to external servers, databases or utility systems."
+    ]
+  }
+}
