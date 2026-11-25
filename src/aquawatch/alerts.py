@@ -7,6 +7,7 @@ from __future__ import annotations
 import pandas as pd
 
 from aquawatch.domain import Incident, IncidentStatus
+from aquawatch.settings import get_settings
 
 
 def _reason(row: pd.Series) -> str:
@@ -103,6 +104,7 @@ def build_incidents(
     from aquawatch.metrics import episode_ids, true_events
 
     detector = detector or prediction_col
+    night_hours = list(get_settings().night_flow.hours)  # same night as the night-flow detector
     ids = episode_ids(scored, prediction_col, max_gap_hours=max_gap_hours)
     flagged = scored.loc[ids.notna()].assign(episode=ids.dropna())
     if flagged.empty:
@@ -120,7 +122,7 @@ def build_incidents(
             volume=("excess", "sum"),  # hourly readings: (unit/h) x 1 h each
             peak_rise=("flow_rel_dev", "max"),
             pressure_change=("pressure_dev", "mean"),
-            night_hours=("hour", lambda h: int(h.isin([1, 2, 3, 4]).sum())),
+            night_hours=("hour", lambda h: int(h.isin(night_hours).sum())),
         )
         .reset_index(drop=True)
         .sort_values(["volume", "start"], ascending=[False, True])

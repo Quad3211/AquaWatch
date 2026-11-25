@@ -31,6 +31,8 @@ aquawatch train
 python -m streamlit run app.py
 ```
 
+Run the install from the repository root: `-e .` in `requirements.txt` installs *this* folder in editable mode, which the package needs (settings in `configs/`, data in `data/` and models in `models/` are found relative to the repository). A non-editable `pip install .` is not supported.
+
 If `aquawatch` or `streamlit` is not recognized (the Python Scripts folder may not be on PATH), use `python -m aquawatch.cli` and `python -m streamlit` instead.
 
 `aquawatch train` writes `models/isolation_forest.skops` plus `model_metadata.json`. Model files are generated, not committed (pickle/joblib files can run code when loaded). If they are missing, the app trains in-session instead.

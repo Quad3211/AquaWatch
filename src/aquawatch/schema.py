@@ -12,6 +12,8 @@ from __future__ import annotations
 import pandas as pd
 import pandera.pandas as pa
 
+from aquawatch.errors import DataError
+
 SENSOR_SCHEMA = pa.DataFrameSchema(
     {
         "timestamp": pa.Column("datetime64[ns]", nullable=False, coerce=True),
@@ -39,7 +41,7 @@ def validate_sensor_frame(df: pd.DataFrame) -> pd.DataFrame:
             .reset_index(name="rows")
             .to_string(index=False)
         )
-        raise ValueError(f"Sensor data failed validation:\n{summary}") from exc
+        raise DataError(f"Sensor data failed validation:\n{summary}") from exc
 
 
 def find_gaps(df: pd.DataFrame, freq: str = "h") -> pd.DataFrame:

@@ -17,6 +17,7 @@ import skops.io as sio
 from sklearn.ensemble import IsolationForest
 
 from aquawatch import config
+from aquawatch.errors import DataError
 from aquawatch.settings import get_settings
 
 FEATURE_COLS = ["flow_rel_dev", "pressure_dev"]
@@ -55,10 +56,10 @@ def build_zone_hour_profile(train: pd.DataFrame, by: str | None = None) -> pd.Da
     the mean. ``by`` is a key of ``PROFILE_KEYS`` (default ``get_settings().profile.by``).
     """
     if train.empty:
-        raise ValueError("No training rows are available.")
+        raise DataError("No training rows are available.")
     by = by or get_settings().profile.by
     if by not in PROFILE_KEYS:
-        raise ValueError(f"Unknown profile type {by!r}; choose from {sorted(PROFILE_KEYS)}.")
+        raise DataError(f"Unknown profile type {by!r}; choose from {sorted(PROFILE_KEYS)}.")
     return (
         add_calendar_columns(train)
         .groupby(PROFILE_KEYS[by])
@@ -115,7 +116,7 @@ def add_rolling_deviations(
     hist = both[(both["_part"] == "history") & both["expected_flow"].notna()].drop(columns="_part")
     out = both[both["_part"] == "frame"].drop(columns="_part")
     if out["expected_flow"].isna().any():
-        raise ValueError("Not enough history before the test window for the rolling profile.")
+        raise DataError("Not enough history before the test window for the rolling profile.")
     return hist.reset_index(drop=True), out.reset_index(drop=True)
 
 
@@ -136,9 +137,10 @@ def select_typical_rows(features: pd.DataFrame, z_cutoff: float | None = None) -
         # 0.6745 scales MAD to match a standard deviation for normal data.
         robust_z = 0.6745 * (features[col] - median) / mad.replace(0, float("nan"))
         keep &= robust_z.abs().fillna(0) <= cutoff
+        keep &= features[col].notna()  # rows with an unknown deviation are never "typical"
     typical = features[keep]
     if typical.empty:
-        raise ValueError("Robust filter removed every training row; check the data.")
+        raise DataError("Robust filter removed every training row; check the data.")
     return typical
 
 
@@ -147,7 +149,7 @@ def add_deviations(frame: pd.DataFrame, profile: pd.DataFrame) -> pd.DataFrame:
     keys = profile_keys(profile)
     out = add_calendar_columns(frame).merge(profile, on=keys, how="left")
     if out[PROFILE_VALUE_COLS].isna().any().any():
-        raise ValueError(
+        raise DataError(
             f"Some {'/'.join(keys)} combinations have no training reference profile; "
             "the training window may be too short for this profile type."
         )
@@ -264,8 +266,12 @@ def fit_detector(train: pd.DataFrame, profile_by: str | None = None) -> tuple[Is
     Never reads ``simulated_leak_label`` or ``simulated_event_id``: a real utility
     has no such labels, so training must work without them.
     """
+    from aquawatch.sensor_health import suspect_readings
+
     profile = build_zone_hour_profile(train, by=profile_by)
-    train_features = select_typical_rows(add_deviations(train, profile))
+    features = add_deviations(train, profile)
+    # Same training rows as the pipeline: no suspected sensor faults (aquawatch.sensor_health).
+    train_features = select_typical_rows(features[~suspect_readings(features)])
     model = train_isolation_forest(train_features)
     return model, profile
 

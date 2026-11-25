@@ -27,6 +27,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from aquawatch.errors import DataError
+
 ZONE = "L-Town"
 INFLOW_PIPES = ("p227", "p235")
 LEAK_LINE = re.compile(
@@ -60,7 +62,7 @@ def read_leak_list(config_path: Path) -> pd.DataFrame:
                 }
             )
     if not rows:
-        raise ValueError(f"No leaks found in {config_path}")
+        raise DataError(f"No leaks found in {config_path}")
     return pd.DataFrame(rows)
 
 

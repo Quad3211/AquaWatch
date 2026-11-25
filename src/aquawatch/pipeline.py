@@ -11,7 +11,7 @@ import pandas as pd
 
 from aquawatch.detectors import METHODS, build_detectors  # noqa: F401  (METHODS re-exported)
 from aquawatch.model import add_deviations, add_rolling_deviations, build_zone_hour_profile
-from aquawatch.sensor_health import suspect_readings
+from aquawatch.sensor_health import status_over_time
 from aquawatch.settings import PROFILE_CHOICES, get_settings  # noqa: F401  (re-exported)
 
 
@@ -33,15 +33,18 @@ def score_all_methods(
     """Fit every registered detector on the training window (no labels) and add its
     alarms (``<column>``) and scores (``<column>_score``) to the test rows.
 
-    Readings flagged by the sensor-health check (``sensor_suspect``: flat-lined
-    or no usable baseline) are left out of training and never raise a leak
-    alarm; they are a data problem to fix, not a leak.
+    Sensor health (see ``aquawatch.sensor_health``): suspect readings
+    (flat-lined, zero or without a baseline) are left out of training, and dead
+    readings (zero flow or no baseline) never raise a leak alarm. Non-zero
+    flat-lines still alarm, so a real leak on a coarse meter is not hidden.
     """
     train_features, scored = build_features(train, test, profile_by)
-    healthy_train = train_features[~suspect_readings(train_features)]
-    scored["sensor_suspect"] = suspect_readings(scored)
+    train_status, test_status = status_over_time(train_features, scored)
+    healthy_train = train_features[~train_status["sensor_suspect"]]
+    scored["sensor_suspect"] = test_status["sensor_suspect"]
+    scored["sensor_dead"] = test_status["sensor_dead"]
     for detector in build_detectors():
         detector.fit(healthy_train)
         scored[f"{detector.column}_score"] = detector.score(scored)
-        scored[detector.column] = detector.alarms(scored).where(~scored["sensor_suspect"], 0).astype(int)
+        scored[detector.column] = detector.alarms(scored).where(~scored["sensor_dead"], 0).astype(int)
     return scored

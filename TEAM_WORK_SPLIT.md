@@ -53,11 +53,11 @@ Add only what is needed:
 
 | Path | Owner | Backup | What “done” means |
 |---|---|---|---|
-| `src/data_loader.py` | Nicholas | Nickel | Loads CSV, validates columns, returns clean DataFrame |
-| `src/baseline.py` | Nicholas | Nickel | 25% flow rule predictions |
-| `src/model.py` | Nickel | Nicholas | Builds profile, trains Isolation Forest, predicts |
-| `src/alerts.py` | Nickel | Jason | Ranked alerts with short reason + next step |
-| `src/metrics.py` | Nicholas | Nickel | Precision/recall table for rule vs AI |
+| `src/aquawatch/data_loader.py` | Nicholas | Nickel | Loads CSV, validates columns, returns clean DataFrame |
+| `src/aquawatch/baseline.py` | Nicholas | Nickel | 25% flow rule predictions |
+| `src/aquawatch/model.py` | Nickel | Nicholas | Builds profile, trains Isolation Forest, predicts |
+| `src/aquawatch/alerts.py` | Nickel | Jason | Ranked alerts with short reason + next step |
+| `src/aquawatch/metrics.py` | Nicholas | Nickel | Precision/recall table for rule vs AI |
 | `app.py` | Jason | Romaro | Streamlit pages wire up to `src/` |
 | Charts / inject demo UI | Romaro | Jason | Zone chart + demo inject path works |
 | `tests/test_pipeline.py` | Nicholas | Nickel | Automated smoke tests pass |
@@ -97,12 +97,12 @@ Add only what is needed:
 
 **Week of 18–20 Nov**
 - [ ] Review `data/AquaWatch_Synthetic_Sensor_Data.csv` + data notes
-- [ ] Finish / harden `src/model.py` (profile + Isolation Forest)
+- [ ] Finish / harden `src/aquawatch/model.py` (profile + Isolation Forest)
 - [ ] Agree feature columns with Nicholas (`flow_rel_dev`, `pressure_dev`)
 
 **Week of 23–27 Nov**
 - [ ] Deliver `detect`-style API Jason can call from Streamlit
-- [ ] Help `src/alerts.py` explanations (flow/pressure language)
+- [ ] Help `src/aquawatch/alerts.py` explanations (flow/pressure language)
 - [ ] Confirm held-out event-level metrics match `data/AquaWatch_Data_Notes.md` (`python scripts/AquaWatch_Evaluate.py`)
 
 **Week of 30 Nov–4 Dec**
@@ -114,8 +114,8 @@ Add only what is needed:
 ### Nicholas Smalling — Data & Model (support)
 
 **Week of 18–20 Nov**
-- [ ] Own `src/data_loader.py` and `src/baseline.py`
-- [ ] Own `src/metrics.py` + keep `scripts/AquaWatch_Evaluate.py` working
+- [ ] Own `src/aquawatch/data_loader.py` and `src/aquawatch/baseline.py`
+- [ ] Own `src/aquawatch/metrics.py` + keep `scripts/AquaWatch_Evaluate.py` working
 - [ ] Update data notes if anything about the CSV changes
 
 **Week of 23–27 Nov**

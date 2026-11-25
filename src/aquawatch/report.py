@@ -76,10 +76,10 @@ def evaluate(
         print(f"Held-out injected leak events: {len(true_events(scored))}")
         if detect_within is not None:
             print(f"A leak counts as caught only if an alarm comes within {detect_within:g} h of its start.")
-    suspect = int(scored["sensor_suspect"].sum())
+    suspect, dead = int(scored["sensor_suspect"].sum()), int(scored["sensor_dead"].sum())
     if suspect:
-        print(f"Sensor health: {suspect:,} readings look like a sensor fault (flat-lined or no baseline); "
-              "no leak alarms were raised on them.")
+        print(f"Sensor health: {suspect:,} readings look like a sensor fault (flat-lined, zero or no "
+              f"baseline); no leak alarms were raised on the {dead:,} dead ones.")
     print(f"Held-out injected anomaly readings: {int(test['simulated_leak_label'].sum())}")
     print()
     print(table.to_string(index=False))

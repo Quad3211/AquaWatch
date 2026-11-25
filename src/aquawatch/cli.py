@@ -144,13 +144,15 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    from aquawatch.errors import DataError
     from aquawatch.settings import SettingsError
 
     args = build_parser().parse_args(argv)
     try:
         return int(args.func(args) or 0)
-    except (SettingsError, ValueError, FileNotFoundError) as exc:
-        # Expected problems with the user's input or files: one clear line, no traceback.
+    except (SettingsError, DataError, FileNotFoundError) as exc:
+        # Expected problems with the user's input, data or files: one clear line.
+        # Anything else is a bug and keeps its full traceback.
         print(f"aquawatch {args.command}: error: {exc}", file=sys.stderr)
         return 2
 

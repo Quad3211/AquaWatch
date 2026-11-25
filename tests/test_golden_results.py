@@ -44,6 +44,10 @@ def test_event_results_match_golden(request):
         GOLDEN.write_text(json.dumps(results, indent=2, sort_keys=True) + "\n")
         pytest.skip(f"Golden results rewritten: {GOLDEN}")
     expected = json.loads(GOLDEN.read_text())
+    # New datasets or detectors must be added to the snapshot on purpose (--update-golden).
+    assert set(results) == set(expected), "datasets differ from the golden snapshot"
+    for dataset in expected:
+        assert set(results[dataset]) == set(expected[dataset]), f"{dataset}: methods differ from the snapshot"
     differences = [
         f"{dataset} / {method} / {field}: expected {expected[dataset][method][field]}, "
         f"got {results[dataset][method][field]}"

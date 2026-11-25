@@ -10,6 +10,7 @@ from typing import IO
 import pandas as pd
 
 from aquawatch import config
+from aquawatch.errors import DataError
 from aquawatch.schema import validate_sensor_frame
 from aquawatch.settings import get_settings
 
@@ -40,11 +41,11 @@ def load_sensor_csv(source: str | Path | IO | None = None) -> pd.DataFrame:
     df = pd.read_csv(source)
     missing = REQUIRED_COLUMNS.difference(df.columns)
     if missing:
-        raise ValueError(f"Dataset is missing required columns: {sorted(missing)}")
+        raise DataError(f"Dataset is missing required columns: {sorted(missing)}")
 
     df["timestamp"] = pd.to_datetime(df["timestamp"], errors="coerce")
     if df["timestamp"].isna().any():
-        raise ValueError("Some rows have a missing or unreadable timestamp.")
+        raise DataError("Some rows have a missing or unreadable timestamp.")
 
     df["hour"] = df["timestamp"].dt.hour.astype(int)
     df = validate_sensor_frame(df)
@@ -63,7 +64,7 @@ def chronological_split(df: pd.DataFrame, cutoff: str | None = None) -> tuple[pd
     train = df[df["timestamp"] < cut].copy()
     test = df[df["timestamp"] >= cut].copy()
     if train.empty or test.empty:
-        raise ValueError(
+        raise DataError(
             f"Expected rows both before and on/after the training cutoff ({cut}). "
             f"This dataset covers {df['timestamp'].min()} to {df['timestamp'].max()}."
         )

@@ -148,11 +148,11 @@ try:
 
     scored, train_rows = _score(df, cutoff)
     scored = scored.copy()
-    suspect = int(scored["sensor_suspect"].sum())
+    suspect, dead = int(scored["sensor_suspect"].sum()), int(scored["sensor_dead"].sum())
     if suspect:
         st.sidebar.warning(
-            f"{suspect:,} readings look like a sensor fault (flat-lined or no usable baseline). "
-            "No leak alarms are raised on them; check those meters."
+            f"{suspect:,} readings look like a sensor fault (flat-lined, zero or no usable baseline); "
+            f"check those meters. No leak alarms are raised on the {dead:,} dead (zero/no-baseline) readings."
         )
     if prefer_saved and config.MODEL_PATH.exists() and config.PROFILE_PATH.exists():
         model, profile = load_model_artifacts()

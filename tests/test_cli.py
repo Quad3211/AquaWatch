@@ -129,3 +129,14 @@ def test_settings_typo_gives_a_clear_error(monkeypatch, capsys):
 def test_detect_within_applies_to_every_dataset(capsys):
     assert main(["evaluate", "--dataset", "simulated", "--detect-within", "24"]) == 0
     assert "within 24 h of its start" in capsys.readouterr().out
+
+
+def test_unexpected_errors_keep_their_traceback(monkeypatch):
+    """Only user/data problems become one-line errors; a bug must still raise."""
+
+    def broken(*args, **kwargs):
+        raise ValueError("internal bug")
+
+    monkeypatch.setattr(report, "evaluate", broken)
+    with pytest.raises(ValueError, match="internal bug"):
+        main(["evaluate"])

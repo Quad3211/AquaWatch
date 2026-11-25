@@ -188,7 +188,12 @@ class IsolationForestDetector(_ThresholdDetector):
     def score(self, frame: pd.DataFrame) -> pd.Series:
         if self.model is None:
             raise RuntimeError("fit() first")
-        return pd.Series(-self.model.decision_function(frame[FEATURE_COLS]), index=frame.index)
+        features = frame[FEATURE_COLS]
+        complete = features.notna().all(axis=1)
+        scores = pd.Series(np.nan, index=frame.index, dtype=float)  # unknown where features are missing
+        if complete.any():
+            scores[complete] = -self.model.decision_function(features[complete])
+        return scores
 
 
 # Order = display order in tables and the app.
